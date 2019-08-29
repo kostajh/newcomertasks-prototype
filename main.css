@@ -1,0 +1,30 @@
+.wrapper {
+    width: 60%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.newcomer-tasks .oo-ui-optionWidget {
+    border-bottom: 1px solid #666;
+    padding: 10px 0;
+}
+
+.oo-ui-selectWidget-unpressed .oo-ui-optionWidget-selected {
+    background-color: #80ccff;
+}
+
+.oo-ui-optionWidget-highlighted {
+    background-color: #b9e3ff;
+}
+
+.oo-ui-inputWidget {
+    margin-bottom: 0.5em;
+}
+
+.newcomer-tasks .oo-ui-labelElement-label {
+    margin-left: 0.25em;
+}
+
+.oo-ui-labelElement .oo-ui-optionWidget {
+    padding: 0.25em;
+}
