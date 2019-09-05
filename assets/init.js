@@ -170,6 +170,7 @@ $( function () {
 
 	function updateQueryParams() {
 		srSearch = '';
+		info.toggle( false );
 		if ( hasTemplate.length ) {
 			if ( moreLike.length ) {
 				srSearch = 'morelikethis:' + moreLike.flat().join('|');
@@ -218,6 +219,7 @@ $( function () {
 	}
 
 	list.on( 'choose', function ( item ) {
+		info.toggle( true );
 		info.setLabel(
 			new OO.ui.HtmlSnippet(
 				'<strong><a href="' + baseUrl + '/wiki/' + item.data.title + '">' + item.data.title + '</a></strong>' +
