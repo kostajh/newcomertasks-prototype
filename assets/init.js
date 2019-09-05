@@ -170,7 +170,7 @@ $( function () {
 			$wrapper.find( '.query-debug' ).text( '' );
 			hasTemplate.flat().forEach( function ( template ) {
 				var perTemplateQuery = queryParams,
-					perTemplateSrSearch = srSearch.trim() + ' hastemplate:' + template;
+					perTemplateSrSearch = srSearch.trim() + ' hastemplate:"' + template + '"';
 				$.extend( perTemplateQuery, { srsearch: perTemplateSrSearch.trim() } );
 				$wrapper.find( '.query-debug' )
 					.append( '<br />' )
