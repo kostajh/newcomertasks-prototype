@@ -102,7 +102,7 @@ $( function () {
 			action: 'query',
 			format: 'json',
 			list: 'search',
-			srlimit: 10,
+			srlimit: 'max',
 			srnamespace: 0,
 			origin: '*'
 		},
