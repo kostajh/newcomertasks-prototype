@@ -49,7 +49,7 @@ $( function () {
 				]
 			}
 		},
-		topicWidget,
+
 		resultCount = 0,
 		info = new OO.ui.MessageWidget( {
 			type: 'notice',
@@ -59,28 +59,42 @@ $( function () {
 		$wrapper = $( '.wrapper' ),
 		$resultCountHtml = $( '<p>' )
 			.addClass( 'result-count' ),
-		topicsToArticles = {
+		topicsToArticles = [
 			// TODO: These articles are chosen semi-randomly from the list of vital articles.
 			//  We would want to randomly select them, and not hardcode.
-			arts: [
-				'Umění',
-				'Moderna',
-				'Literatura',
-				'Hudba',
-				'Výtvarné_umění',
-				'Múzická_umění',
-				'Architektura'
-			],
-			philosophy: [
-				'Filosofie',
-				'Poznatek',
-				'Etika',
-				'Logika',
-				'Východní_filosofie',
-				'Estetika',
-				'Gnozeologie'
-			]
-		},
+			{
+				label: 'Arts',
+				titles: [
+					'Umění',
+					'Moderna',
+					'Literatura',
+					'Hudba',
+					'Výtvarné_umění',
+					'Múzická_umění',
+					'Architektura'
+				]
+			},
+			{
+				label: 'Philosophy',
+				titles: [
+					'Filosofie',
+					'Poznatek',
+					'Etika',
+					'Logika',
+					'Východní_filosofie',
+					'Estetika',
+					'Gnozeologie'
+				]
+			},
+			{
+				label: 'Engineering',
+				titles: [
+					'Inženýrství',
+					'Stavebnictví',
+					'Strojírenství'
+				]
+			}
+		],
 		taskTypeWidget = new OO.ui.CheckboxMultiselectWidget( {
 			classes: [ 'task-type' ],
 			items: Array.from( Object.keys( taskTypeTemplateMapping ), function ( item ) {
@@ -115,7 +129,9 @@ $( function () {
 		TopicSelectionWidget = function ( config ) {
 			config = config || {};
 			TopicSelectionWidget.parent.call( this, config );
-		};
+		},
+		topicWidget,
+		topicWidgetOptions = [];
 
 	OO.inheritClass( TaskOptionWidget, OO.ui.OptionWidget );
 	OO.inheritClass( TopicSelectionWidget, OO.ui.MenuTagMultiselectWidget );
@@ -123,6 +139,18 @@ $( function () {
 	TaskOptionWidget.prototype.getTemplate = function () {
 		return this.template;
 	};
+
+	topicsToArticles.forEach( function ( topic ) {
+		topicWidgetOptions.push( {
+			label: topic.label,
+			data: topic.titles
+		} );
+	} );
+
+	topicWidget = new TopicSelectionWidget( {
+		allowArbitrary: false,
+		options: topicWidgetOptions
+	} );
 
 	function getCategoryForTemplate( template ) {
 		var category;
@@ -137,26 +165,12 @@ $( function () {
 		return taskTypeTemplateMapping[ getCategoryForTemplate( template ) ].label;
 	}
 
-	topicWidget = new TopicSelectionWidget( {
-		allowArbitrary: false,
-		options: [
-			{
-				data: topicsToArticles.arts,
-				label: 'Arts'
-			},
-			{
-				data: topicsToArticles.philosophy,
-				label: 'Philosophy'
-			}
-		]
-	} );
-
 	function updateQueryParams() {
 		srSearch = '';
 		info.toggle( false );
 		if ( hasTemplate.length ) {
 			if ( moreLike.length ) {
-				srSearch = 'morelikethis:' + moreLike.flat().join( '|' );
+				srSearch = 'morelikethis:"' + moreLike.flat().join( '|' ) + '"';
 			}
 
 		} else {
