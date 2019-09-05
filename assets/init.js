@@ -49,7 +49,9 @@ $( function () {
 				]
 			}
 		},
-
+		titleInputWidget = new OO.ui.TextInputWidget( {
+			placeholder: 'Pipe-delimited titles for debugging morelikethis. Example: "Inženýrství|Strojírenství" for "Engineering".'
+		} ),
 		resultCount = 0,
 		info = new OO.ui.MessageWidget( {
 			type: 'notice',
@@ -116,7 +118,7 @@ $( function () {
 			action: 'query',
 			format: 'json',
 			list: 'search',
-			srlimit: 'max',
+			srlimit: 30,
 			srnamespace: 0,
 			origin: '*'
 		},
@@ -168,49 +170,50 @@ $( function () {
 	function updateQueryParams() {
 		srSearch = '';
 		info.toggle( false );
-		if ( hasTemplate.length ) {
-			if ( moreLike.length ) {
-				srSearch = 'morelikethis:"' + moreLike.flat().join( '|' ) + '"';
-			}
-
-		} else {
+		if ( !hasTemplate.length ) {
 			delete queryParams.srsearch;
+			return;
 		}
-		if ( hasTemplate.length ) {
-			list.clearItems();
-			list.toggle( true );
-			resultCount = 0;
-			$wrapper.find( '.result-count' ).toggle( true );
-			$wrapper.find( '.query-debug' ).text( '' );
-			hasTemplate.flat().forEach( function ( template ) {
-				var perTemplateQuery = queryParams,
-					perTemplateSrSearch = srSearch.trim() + ' hastemplate:"' + template + '"';
-				$.extend( perTemplateQuery, { srsearch: perTemplateSrSearch.trim() } );
-				$wrapper.find( '.query-debug' )
-					.append( '<br />' )
-					.append( JSON.stringify( perTemplateQuery, null, 2 ) );
-				$.get( baseUrl + '/w/api.php?', queryParams )
-					.then( function ( result ) {
-						result.query.search.forEach( function ( searchResult ) {
-							if ( list.findItemFromData( searchResult ) === null ) {
-								resultCount += 1;
-								list.addItems( [
-									new TaskOptionWidget( {
-										data: searchResult,
-										template: template,
-										label: searchResult.title
-									} )
-								] );
-							}
-						} );
-						$wrapper.find( '.result-count' )
-							.text( resultCount + ' results found' );
-					}, function ( err ) {
-						console.log( err );
+		if ( moreLike.length ) {
+			srSearch = 'morelikethis:"' + moreLike.flat().join( '|' ) + '"';
+		}
+		// Override topic selection if we're debugging.
+		if ( titleInputWidget.getValue() ) {
+			srSearch = 'morelikethis:"' + titleInputWidget.getValue() + '"';
+		}
+		list.clearItems();
+		list.toggle( true );
+		resultCount = 0;
+		$wrapper.find( '.result-count' ).toggle( true );
+		$wrapper.find( '.query-debug' ).text( '' );
+		hasTemplate.flat().forEach( function ( template ) {
+			var perTemplateQuery = queryParams,
+				perTemplateSrSearch = srSearch.trim() + ' hastemplate:"' + template + '"';
+			$.extend( perTemplateQuery, { srsearch: perTemplateSrSearch.trim() } );
+			$wrapper.find( '.query-debug' )
+				.append( '<br />' )
+				.append( JSON.stringify( perTemplateQuery, null, 2 ) );
+			$.get( baseUrl + '/w/api.php?', queryParams )
+				.then( function ( result ) {
+					result.query.search.forEach( function ( searchResult ) {
+						if ( list.findItemFromData( searchResult ) === null ) {
+							resultCount += 1;
+							list.addItems( [
+								new TaskOptionWidget( {
+									data: searchResult,
+									template: template,
+									label: searchResult.title
+								} )
+							] );
+						}
 					} );
-			} );
+					$wrapper.find( '.result-count' )
+						.text( resultCount + ' results found' );
+				}, function ( err ) {
+					console.log( err );
+				} );
+		} );
 
-		}
 	}
 
 	function getIconForTemplate( templateName ) {
@@ -256,6 +259,7 @@ $( function () {
 	} );
 
 	$wrapper.append(
+		titleInputWidget.$element,
 		topicWidget.$element,
 		taskTypeWidget.$element,
 		info.$element,
