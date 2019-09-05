@@ -39,7 +39,7 @@ $( function () {
 					[
 						'Aktualizovat',
 						'Aktualizovat po'
-					],
+					]
 			},
 			links: {
 				label: 'Links',
@@ -86,9 +86,9 @@ $( function () {
 			items: Array.from( Object.keys( taskTypeTemplateMapping ), function ( item ) {
 				var dataItem = taskTypeTemplateMapping[ item ];
 				return new OO.ui.CheckboxMultioptionWidget( {
-					data: dataItem['templates'],
-					label: dataItem['label']
-				} )
+					data: dataItem.templates,
+					label: dataItem.label
+				} );
 			} )
 		} ),
 		hasTemplate = [],
@@ -104,69 +104,51 @@ $( function () {
 			list: 'search',
 			srlimit: 10,
 			srnamespace: 0,
-			origin: '*',
+			origin: '*'
 		},
-		taskOptionWidget = function ( config ) {
+		TaskOptionWidget = function ( config ) {
 			config = config || {};
-			taskOptionWidget.parent.call( this, config );
+			TaskOptionWidget.parent.call( this, config );
 			this.template = config.template;
 			this.category = config.category;
 		},
-		topicSelectionWidget = function ( config ) {
+		TopicSelectionWidget = function ( config ) {
 			config = config || {};
-			topicSelectionWidget.parent.call( this, config );
+			TopicSelectionWidget.parent.call( this, config );
 		};
 
+	OO.inheritClass( TaskOptionWidget, OO.ui.OptionWidget );
+	OO.inheritClass( TopicSelectionWidget, OO.ui.MenuTagMultiselectWidget );
 
-	OO.inheritClass( taskOptionWidget, OO.ui.OptionWidget );
-	OO.inheritClass( topicSelectionWidget, OO.ui.MenuTagMultiselectWidget );
-
-	taskOptionWidget.prototype.getTemplate = function () {
+	TaskOptionWidget.prototype.getTemplate = function () {
 		return this.template;
 	};
 
 	function getCategoryForTemplate( template ) {
-		for ( var category in taskTypeTemplateMapping ) {
-			if (taskTypeTemplateMapping[category].templates.indexOf( template ) !== -1) {
+		var category;
+		for ( category in taskTypeTemplateMapping ) {
+			if ( taskTypeTemplateMapping[ category ].templates.indexOf( template ) !== -1 ) {
 				return category;
 			}
 		}
 	}
 
 	function getCategoryLabelForTemplate( template ) {
-		return taskTypeTemplateMapping[getCategoryForTemplate( template )].label;
+		return taskTypeTemplateMapping[ getCategoryForTemplate( template ) ].label;
 	}
 
-	topicWidget = new topicSelectionWidget( {
+	topicWidget = new TopicSelectionWidget( {
 		allowArbitrary: false,
 		options: [
 			{
-				data: topicsToArticles['arts'],
+				data: topicsToArticles.arts,
 				label: 'Arts'
 			},
 			{
-				data: topicsToArticles['philosophy'],
+				data: topicsToArticles.philosophy,
 				label: 'Philosophy'
 			}
 		]
-	} );
-
-	topicWidget.on( 'change', function () {
-		moreLike = [];
-		topicWidget.getItems().forEach( function ( item ) {
-			moreLike.push( item.data );
-		} );
-		updateQueryParams();
-	} );
-
-	taskTypeWidget.on( 'select', function () {
-		hasTemplate = [];
-		taskTypeWidget.getItems().forEach( function ( item ) {
-			if ( item.selected ) {
-				hasTemplate.push( item.data );
-			}
-		} );
-		updateQueryParams()	;
 	} );
 
 	function updateQueryParams() {
@@ -174,7 +156,7 @@ $( function () {
 		info.toggle( false );
 		if ( hasTemplate.length ) {
 			if ( moreLike.length ) {
-				srSearch = 'morelikethis:' + moreLike.flat().join('|');
+				srSearch = 'morelikethis:' + moreLike.flat().join( '|' );
 			}
 
 		} else {
@@ -188,28 +170,28 @@ $( function () {
 				var perTemplateQuery = queryParams,
 					perTemplateSrSearch = srSearch.trim() + ' hastemplate:' + template;
 				$.extend( perTemplateQuery, { srsearch: perTemplateSrSearch.trim() } );
-				$wrapper.find('.query-debug')
+				$wrapper.find( '.query-debug' )
 					.append( '<br />' )
-					.append( JSON.stringify(perTemplateQuery, null, 2 ) );
+					.append( JSON.stringify( perTemplateQuery, null, 2 ) );
 				$.get( baseUrl + '/w/api.php?', queryParams )
 					.then( function ( result ) {
-						result.query.search.forEach( function( searchResult ) {
+						result.query.search.forEach( function ( searchResult ) {
 							if ( list.findItemFromData( searchResult ) === null ) {
 								resultCount += 1;
-								list.addItems([
-									new taskOptionWidget( {
+								list.addItems( [
+									new TaskOptionWidget( {
 										data: searchResult,
 										template: template,
 										label: searchResult.title
 									} )
-								]);
+								] );
 							}
 						} );
 						$wrapper.find( '.result-count' )
 							.text( resultCount + ' results found' );
 					}, function ( err ) {
 						console.log( err );
-					} )
+					} );
 			} );
 
 		}
@@ -231,6 +213,24 @@ $( function () {
 			'<strong>Category:</strong> ' + getCategoryLabelForTemplate( item.getTemplate() ) + '</p>' )
 		);
 		info.setIcon( getIconForTemplate( item.getTemplate() ) );
+	} );
+
+	topicWidget.on( 'change', function () {
+		moreLike = [];
+		topicWidget.getItems().forEach( function ( item ) {
+			moreLike.push( item.data );
+		} );
+		updateQueryParams();
+	} );
+
+	taskTypeWidget.on( 'select', function () {
+		hasTemplate = [];
+		taskTypeWidget.getItems().forEach( function ( item ) {
+			if ( item.selected ) {
+				hasTemplate.push( item.data );
+			}
+		} );
+		updateQueryParams();
 	} );
 
 	$wrapper.append(

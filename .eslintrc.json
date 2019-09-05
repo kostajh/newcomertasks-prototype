@@ -1,0 +1,18 @@
+{
+	"root": true,
+	"extends": [
+		"wikimedia/client",
+		"wikimedia/jquery"
+	],
+	"env": {
+		"commonjs": true
+	},
+	"globals": {
+		"mw": false,
+		"mediaWiki":  false,
+		"require": false,
+		"jQuery": false,
+		"OO": false,
+		"module": false
+	}
+}

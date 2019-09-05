@@ -9,6 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "eslint": "^6.3.0",
+    "eslint-config-wikimedia": "^0.14.1",
     "oojs-ui": "^0.33.4"
   }
 }
