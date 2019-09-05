@@ -4,6 +4,10 @@
     margin-right: auto;
 }
 
+.task-type {
+    padding: 20px 0;
+}
+
 .newcomer-tasks .oo-ui-optionWidget {
     border-bottom: 1px solid #666;
     padding: 10px 0;

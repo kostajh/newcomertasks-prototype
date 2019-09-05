@@ -55,7 +55,7 @@ $( function () {
 			type: 'notice',
 			label: 'Task detail',
 			classes: [ 'task-info' ]
-		} ),
+		} ).toggle( false ),
 		$wrapper = $( '.wrapper' ),
 		$resultCountHtml = $( '<p>' )
 			.addClass( 'result-count' ),
@@ -82,6 +82,7 @@ $( function () {
 			]
 		},
 		taskTypeWidget = new OO.ui.CheckboxMultiselectWidget( {
+			classes: [ 'task-type' ],
 			items: Array.from( Object.keys( taskTypeTemplateMapping ), function ( item ) {
 				var dataItem = taskTypeTemplateMapping[ item ];
 				return new OO.ui.CheckboxMultioptionWidget( {
