@@ -164,7 +164,9 @@ $( function () {
 		}
 		if ( hasTemplate.length ) {
 			list.clearItems();
+			list.toggle( true );
 			resultCount = 0;
+			$wrapper.find( '.result-count' ).toggle( true );
 			$wrapper.find( '.query-debug' ).text( '' );
 			hasTemplate.flat().forEach( function ( template ) {
 				var perTemplateQuery = queryParams,
@@ -230,7 +232,13 @@ $( function () {
 				hasTemplate.push( item.data );
 			}
 		} );
-		updateQueryParams();
+		if ( hasTemplate.length ) {
+			updateQueryParams();
+		} else {
+			// No templates, hide the results.
+			list.toggle( false );
+			$wrapper.find( '.result-count' ).toggle( false );
+		}
 	} );
 
 	$wrapper.append(
