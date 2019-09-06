@@ -120,6 +120,7 @@ $( function () {
 			list: 'search',
 			srlimit: 30,
 			srnamespace: 0,
+			srqiprofile: 'classic_noboostlinks',
 			origin: '*'
 		},
 		TaskOptionWidget = function ( config ) {
