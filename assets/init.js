@@ -1,57 +1,39 @@
 $( function () {
-	var taskTypeTemplateMapping = {
-			copyedit: {
-				label: 'Copy editing',
-				icon: 'articleCheck',
-				templates: [
-					'Upravit',
-					'Kdy\?',
-					'Kdo\?',
-					'Pravopis',
-					'Sloh',
-					'Transkripce',
-					'Reklama',
-					'NPOV',
-					'Kým\?',
-					'Jaký\?',
-					'Který\?'
-				]
-			},
-			references: {
-				label: 'References',
-				icon: 'references',
-				templates: [
-					'Doplňte zdroj',
-					'Neověřeno'
-				]
-			},
-			info: {
-				label: 'Info',
-				icon: 'infoFilled',
-				templates: [
-					'Nejisté datum'
-				]
-			},
-			update: {
-				label: 'Update',
-				icon: 'edit',
-				templates:
-					[
-						'Aktualizovat',
-						'Aktualizovat po'
-					]
-			},
-			links: {
-				label: 'Links',
-				icon: 'link',
-				templates: [
-					'Wikifikovat'
-				]
-			}
-		},
+	var taskTypeTemplateMapping = {},
+		lang = $( 'html' ).attr( 'lang' ),
+		topicsSource = new OO.ui.TextInputWidget( {
+			value: '',
+			title: 'See User:KHarlan_(WMF)/newcomertasks/topics/cs.json for example.',
+			placeholder: 'User:KHarlan_(WMF)/newcomertasks/topics/'
+		} ),
+		templateSource = new OO.ui.TextInputWidget( {
+			value: '',
+			title: 'Source page with templates. See User:KHarlan_(WMF)/newcomertasks/templates/cs.json for example.',
+			placeholder: 'User:KHarlan_(WMF)/newcomertasks/templates/'
+		} ),
+		langSelectWidget = new OO.ui.ButtonSelectWidget( {
+			items: [
+				new OO.ui.ButtonOptionWidget( {
+					data: 'cs',
+					label: 'cs'
+				} ),
+				new OO.ui.ButtonOptionWidget( {
+					data: 'ar',
+					label: 'ar'
+				} ),
+				new OO.ui.ButtonOptionWidget( {
+					data: 'ko',
+					label: 'ko'
+				} ),
+				new OO.ui.ButtonOptionWidget( {
+					data: 'vi',
+					label: 'vi'
+				} )
+			]
+		} ),
 		titleInputWidget = new OO.ui.TextInputWidget( {
 			placeholder: 'Pipe-delimited titles for debugging morelikethis. Example: "Inženýrství|Strojírenství" for "Engineering".'
-		} ),
+		} ).toggle ( false ),
 		resultCount = 0,
 		info = new OO.ui.MessageWidget( {
 			type: 'notice',
@@ -61,51 +43,10 @@ $( function () {
 		$wrapper = $( '.wrapper' ),
 		$resultCountHtml = $( '<p>' )
 			.addClass( 'result-count' ),
-		topicsToArticles = [
-			// TODO: These articles are chosen semi-randomly from the list of vital articles.
-			//  We would want to randomly select them, and not hardcode.
-			{
-				label: 'Arts',
-				titles: [
-					'Umění',
-					'Moderna',
-					'Literatura',
-					'Hudba',
-					'Výtvarné_umění',
-					'Múzická_umění',
-					'Architektura'
-				]
-			},
-			{
-				label: 'Philosophy',
-				titles: [
-					'Filosofie',
-					'Poznatek',
-					'Etika',
-					'Logika',
-					'Východní_filosofie',
-					'Estetika',
-					'Gnozeologie'
-				]
-			},
-			{
-				label: 'Engineering',
-				titles: [
-					'Inženýrství',
-					'Stavebnictví',
-					'Strojírenství'
-				]
-			}
-		],
 		taskTypeWidget = new OO.ui.CheckboxMultiselectWidget( {
 			classes: [ 'task-type' ],
-			items: Array.from( Object.keys( taskTypeTemplateMapping ), function ( item ) {
-				var dataItem = taskTypeTemplateMapping[ item ];
-				return new OO.ui.CheckboxMultioptionWidget( {
-					data: dataItem.templates,
-					label: dataItem.label
-				} );
-			} )
+			items: [],
+
 		} ),
 		hasTemplate = [],
 		moreLike = [],
@@ -113,7 +54,6 @@ $( function () {
 		list = new OO.ui.SelectWidget( {
 			classes: [ 'newcomer-tasks' ]
 		} ),
-		baseUrl = 'https://cs.wikipedia.org',
 		queryParams = {
 			action: 'query',
 			format: 'json',
@@ -129,12 +69,11 @@ $( function () {
 			this.template = config.template;
 			this.category = config.category;
 		},
+		topicWidget,
 		TopicSelectionWidget = function ( config ) {
 			config = config || {};
 			TopicSelectionWidget.parent.call( this, config );
-		},
-		topicWidget,
-		topicWidgetOptions = [];
+		};
 
 	OO.inheritClass( TaskOptionWidget, OO.ui.OptionWidget );
 	OO.inheritClass( TopicSelectionWidget, OO.ui.MenuTagMultiselectWidget );
@@ -143,17 +82,32 @@ $( function () {
 		return this.template;
 	};
 
-	topicsToArticles.forEach( function ( topic ) {
-		topicWidgetOptions.push( {
-			label: topic.label,
-			data: topic.titles
-		} );
-	} );
-
 	topicWidget = new TopicSelectionWidget( {
 		allowArbitrary: false,
-		options: topicWidgetOptions
+		options: []
 	} );
+
+	function getTopicsForLang( lang ) {
+		topicWidget.getMenu().clearItems();
+		$.get( 'https://www.mediawiki.org/w/api.php', {
+			action: 'query',
+			prop: 'revisions',
+			titles: 'User:KHarlan_(WMF)/newcomertasks/topics/' + lang + '.json',
+			rvprop: 'content',
+			format: 'json',
+			formatversion: 2,
+			rvslots: '*',
+			origin: '*'
+		}, function ( response ) {
+			var topics = JSON.parse( response.query.pages[0].revisions[0].slots.main.content),
+				key;
+			for ( key in topics ) {
+				topicWidget.addOptions( [
+					topicWidget.createMenuOptionWidget( topics[ key ].titles, topics[ key ].label, '' )
+				] );
+			}
+		} );
+	}
 
 	function getCategoryForTemplate( template ) {
 		var category;
@@ -171,6 +125,11 @@ $( function () {
 	function updateQueryParams() {
 		srSearch = '';
 		info.toggle( false );
+		list.clearItems();
+		list.toggle( true );
+		resultCount = 0;
+		$wrapper.find( '.result-count' ).toggle( true );
+		$wrapper.find( '.query-debug' ).text( '' );
 		if ( !hasTemplate.length ) {
 			delete queryParams.srsearch;
 			return;
@@ -182,11 +141,6 @@ $( function () {
 		if ( titleInputWidget.getValue() ) {
 			srSearch = 'morelikethis:"' + titleInputWidget.getValue() + '"';
 		}
-		list.clearItems();
-		list.toggle( true );
-		resultCount = 0;
-		$wrapper.find( '.result-count' ).toggle( true );
-		$wrapper.find( '.query-debug' ).text( '' );
 		hasTemplate.flat().forEach( function ( template ) {
 			var perTemplateQuery = queryParams,
 				perTemplateSrSearch = srSearch.trim() + ' hastemplate:"' + template + '"';
@@ -194,7 +148,7 @@ $( function () {
 			$wrapper.find( '.query-debug' )
 				.append( '<br />' )
 				.append( JSON.stringify( perTemplateQuery, null, 2 ) );
-			$.get( baseUrl + '/w/api.php?', queryParams )
+			$.get( 'https://' + lang + '.wikipedia.org/w/api.php?', queryParams )
 				.then( function ( result ) {
 					result.query.search.forEach( function ( searchResult ) {
 						if ( list.findItemFromData( searchResult ) === null ) {
@@ -225,7 +179,7 @@ $( function () {
 		info.toggle( true );
 		info.setLabel(
 			new OO.ui.HtmlSnippet(
-				'<strong><a href="' + baseUrl + '/wiki/' + item.data.title + '">' + item.data.title + '</a></strong>' +
+				'<strong><a href="' + 'https://' + lang + '.wikipedia.org/wiki/' + item.data.title + '">' + item.data.title + '</a></strong>' +
 				'<br>' +
 				item.data.snippet +
 			'<br>' +
@@ -240,6 +194,41 @@ $( function () {
 		topicWidget.getItems().forEach( function ( item ) {
 			moreLike.push( item.data );
 		} );
+		updateQueryParams();
+	} );
+
+	function getTemplatesForLang( lang ) {
+		taskTypeWidget.clearItems();
+	    $.get( 'https://www.mediawiki.org/w/api.php', {
+		    titles: 'User:KHarlan_(WMF)/newcomertasks/templates/' + lang + '.json',
+		    action: 'query',
+		    prop: 'revisions',
+		    rvprop: 'content',
+		    format: 'json',
+		    formatversion: 2,
+		    rvslots: '*',
+		    origin: '*'
+	    }, function ( response ) {
+		    var templates = JSON.parse(
+			    response.query.pages[0].revisions[0].slots.main.content
+			    ),
+			    key;
+
+	    	for ( key in templates ) {
+			    taskTypeWidget.addItems( [ new OO.ui.CheckboxMultioptionWidget( {
+				    data: templates[key].templates,
+				    label: templates[key].label
+			    })])
+		    }
+	    } );
+	}
+
+	langSelectWidget.on( 'select', function ( item ) {
+		$( 'html' ).attr( 'lang', item.data );
+		lang = item.data;
+		hasTemplate = [];
+		getTopicsForLang( lang );
+		getTemplatesForLang( lang );
 		updateQueryParams();
 	} );
 
@@ -260,7 +249,19 @@ $( function () {
 	} );
 
 	$wrapper.append(
-		titleInputWidget.$element,
+		new OO.ui.FieldLayout( topicsSource, {
+			align: 'left',
+			label: 'Source page for topics',
+			value: 'User:KHarlan_(WMF)/newcomertasks/topics/',
+			help: 'See https://www.mediawiki.org/wiki/User:KHarlan_(WMF)/newcomertasks/topics/cs.json for example.'
+		} ).$element,
+		new OO.ui.FieldLayout( templateSource, {
+			align: 'left',
+			label: 'Source page for templates',
+			value: 'User:KHarlan_(WMF)/newcomertasks/templates/',
+			help: 'See https://www.mediawiki.org/wiki/User:KHarlan_(WMF)/newcomertasks/templates/cs.json for example.'
+		} ).$element,
+		langSelectWidget.$element,
 		topicWidget.$element,
 		taskTypeWidget.$element,
 		info.$element,
