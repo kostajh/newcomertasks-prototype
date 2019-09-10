@@ -254,13 +254,13 @@ $( function () {
 			label: 'Source page for topics',
 			value: 'User:KHarlan_(WMF)/newcomertasks/topics/',
 			help: 'See https://www.mediawiki.org/wiki/User:KHarlan_(WMF)/newcomertasks/topics/cs.json for example.'
-		} ).$element,
+		} ).toggle( false ).$element,
 		new OO.ui.FieldLayout( templateSource, {
 			align: 'left',
 			label: 'Source page for templates',
 			value: 'User:KHarlan_(WMF)/newcomertasks/templates/',
 			help: 'See https://www.mediawiki.org/wiki/User:KHarlan_(WMF)/newcomertasks/templates/cs.json for example.'
-		} ).$element,
+		} ).toggle( false ).$element,
 		langSelectWidget.$element,
 		topicWidget.$element,
 		taskTypeWidget.$element,
