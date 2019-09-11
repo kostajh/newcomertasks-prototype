@@ -54,7 +54,7 @@ $( function () {
 			action: 'query',
 			format: 'json',
 			list: 'search',
-			srlimit: 30,
+			srlimit: 'max',
 			srnamespace: 0,
 			srqiprofile: 'classic_noboostlinks',
 			origin: '*'
@@ -139,7 +139,8 @@ $( function () {
 		}
 		hasTemplate.flat().forEach( function ( template ) {
 			var perTemplateQuery = queryParams,
-				perTemplateSrSearch = srSearch.trim() + ' hastemplate:"' + template + '"';
+				perTemplateSrSearch = srSearch.trim() + ' hastemplate:"' + template + '"',
+				maxResultsinUi = 30;
 			$.extend( perTemplateQuery, { srsearch: perTemplateSrSearch.trim() } );
 			$wrapper.find( '.query-debug' )
 				.append( '<br />' )
@@ -149,13 +150,15 @@ $( function () {
 					result.query.search.forEach( function ( searchResult ) {
 						if ( list.findItemFromData( searchResult ) === null ) {
 							resultCount += 1;
-							list.addItems( [
-								new TaskOptionWidget( {
-									data: searchResult,
-									template: template,
-									label: searchResult.title
-								} )
-							] );
+							if ( resultCount < maxResultsinUi ) {
+								list.addItems( [
+									new TaskOptionWidget( {
+										data: searchResult,
+										template: template,
+										label: searchResult.title
+									} )
+								] );
+							}
 						}
 					} );
 					$wrapper.find( '.result-count' )
