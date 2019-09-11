@@ -1,6 +1,8 @@
 $( function () {
 	var taskTypeTemplateMapping = {},
 		lang = $( 'html' ).attr( 'lang' ),
+		maxResultsinUi = 10,
+		apiQueryCount = 0,
 		topicsSource = new OO.ui.TextInputWidget( {
 			value: '',
 			title: 'See User:KHarlan_(WMF)/newcomertasks/topics/cs.json for example.',
@@ -37,8 +39,8 @@ $( function () {
 			classes: [ 'task-info' ]
 		} ).toggle( false ),
 		$wrapper = $( '.wrapper' ),
-		$resultCountHtml = $( '<p>' )
-			.addClass( 'result-count' ),
+		$resultCountHtml = $( '<p>' ).addClass( 'result-count' ),
+		$queryCountHtml = $( '<p>' ).addClass( 'query-count' ),
 		taskTypeWidget = new OO.ui.CheckboxMultiselectWidget( {
 			classes: [ 'task-type' ],
 			items: []
@@ -118,13 +120,53 @@ $( function () {
 		return taskTypeTemplateMapping[ getCategoryForTemplate( template ) ].label;
 	}
 
+	function appendResultsToTaskOptions( searchResult, template ) {
+
+		if ( list.findItemFromData( searchResult ) === null ) {
+			resultCount += 1;
+			if ( resultCount < maxResultsinUi ) {
+				list.addItems( [
+					new TaskOptionWidget( {
+						data: searchResult,
+						template: template,
+						label: searchResult.title
+					} )
+				] );
+			}
+		}
+	}
+
+	function executeQuery( offset, template ) {
+		apiQueryCount += 1;
+		if ( offset !== 0 ) {
+			queryParams.sroffset = offset;
+		}
+		$.get( 'https://' + lang + '.wikipedia.org/w/api.php?', queryParams )
+			.then( function ( result ) {
+				result.query.search.forEach( function ( searchResult ) {
+					appendResultsToTaskOptions( searchResult, template );
+				} );
+				$wrapper.find( '.result-count' )
+					.text( resultCount + ' results found' );
+				$wrapper.find( '.query-count' )
+					.text( apiQueryCount + ' API queries executed' );
+				if ( result.continue ) {
+					executeQuery( result.continue.sroffset, template );
+				}
+			}, function ( err ) {
+				console.log( err );
+			} );
+	}
+
 	function updateQueryParams() {
 		srSearch = '';
 		info.toggle( false );
 		list.clearItems();
 		list.toggle( true );
 		resultCount = 0;
+		apiQueryCount = 0;
 		$wrapper.find( '.result-count' ).toggle( true );
+		$wrapper.find( '.query-count' ).toggle( true );
 		$wrapper.find( '.query-debug' ).text( '' );
 		if ( !hasTemplate.length ) {
 			delete queryParams.srsearch;
@@ -139,33 +181,12 @@ $( function () {
 		}
 		hasTemplate.flat().forEach( function ( template ) {
 			var perTemplateQuery = queryParams,
-				perTemplateSrSearch = srSearch.trim() + ' hastemplate:"' + template + '"',
-				maxResultsinUi = 30;
+				perTemplateSrSearch = srSearch.trim() + ' hastemplate:"' + template + '"';
 			$.extend( perTemplateQuery, { srsearch: perTemplateSrSearch.trim() } );
 			$wrapper.find( '.query-debug' )
 				.append( '<br />' )
 				.append( JSON.stringify( perTemplateQuery, null, 2 ) );
-			$.get( 'https://' + lang + '.wikipedia.org/w/api.php?', queryParams )
-				.then( function ( result ) {
-					result.query.search.forEach( function ( searchResult ) {
-						if ( list.findItemFromData( searchResult ) === null ) {
-							resultCount += 1;
-							if ( resultCount < maxResultsinUi ) {
-								list.addItems( [
-									new TaskOptionWidget( {
-										data: searchResult,
-										template: template,
-										label: searchResult.title
-									} )
-								] );
-							}
-						}
-					} );
-					$wrapper.find( '.result-count' )
-						.text( resultCount + ' results found' );
-				}, function ( err ) {
-					console.log( err );
-				} );
+			executeQuery( 0, template );
 		} );
 
 	}
@@ -245,6 +266,7 @@ $( function () {
 			// No templates, hide the results.
 			list.toggle( false );
 			$wrapper.find( '.result-count' ).toggle( false );
+			$wrapper.find( '.query-count' ).toggle( false );
 		}
 	} );
 
@@ -266,6 +288,7 @@ $( function () {
 		taskTypeWidget.$element,
 		info.$element,
 		$resultCountHtml,
+		$queryCountHtml,
 		list.$element
 	);
 } );
