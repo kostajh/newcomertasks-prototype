@@ -24,10 +24,6 @@ $( function () {
 				new OO.ui.ButtonOptionWidget( {
 					data: 'ko',
 					label: 'ko'
-				} ),
-				new OO.ui.ButtonOptionWidget( {
-					data: 'vi',
-					label: 'vi'
 				} )
 			]
 		} ),
@@ -219,6 +215,7 @@ $( function () {
 				    data: templates[key].templates,
 				    label: templates[key].label
 			    })])
+			    taskTypeTemplateMapping[ key ] = templates[key];
 		    }
 	    } );
 	}
