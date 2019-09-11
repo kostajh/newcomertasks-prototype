@@ -29,7 +29,7 @@ $( function () {
 		} ),
 		titleInputWidget = new OO.ui.TextInputWidget( {
 			placeholder: 'Pipe-delimited titles for debugging morelikethis. Example: "Inženýrství|Strojírenství" for "Engineering".'
-		} ).toggle ( false ),
+		} ).toggle( false ),
 		resultCount = 0,
 		info = new OO.ui.MessageWidget( {
 			type: 'notice',
@@ -41,7 +41,7 @@ $( function () {
 			.addClass( 'result-count' ),
 		taskTypeWidget = new OO.ui.CheckboxMultiselectWidget( {
 			classes: [ 'task-type' ],
-			items: [],
+			items: []
 
 		} ),
 		hasTemplate = [],
@@ -95,7 +95,7 @@ $( function () {
 			rvslots: '*',
 			origin: '*'
 		}, function ( response ) {
-			var topics = JSON.parse( response.query.pages[0].revisions[0].slots.main.content),
+			var topics = JSON.parse( response.query.pages[ 0 ].revisions[ 0 ].slots.main.content ),
 				key;
 			for ( key in topics ) {
 				topicWidget.addOptions( [
@@ -175,7 +175,7 @@ $( function () {
 		info.toggle( true );
 		info.setLabel(
 			new OO.ui.HtmlSnippet(
-				'<strong><a href="' + 'https://' + lang + '.wikipedia.org/wiki/' + item.data.title + '">' + item.data.title + '</a></strong>' +
+				'<strong><a href="https://' + lang + '.wikipedia.org/wiki/' + item.data.title + '">' + item.data.title + '</a></strong>' +
 				'<br>' +
 				item.data.snippet +
 			'<br>' +
@@ -195,29 +195,29 @@ $( function () {
 
 	function getTemplatesForLang( lang ) {
 		taskTypeWidget.clearItems();
-	    $.get( 'https://www.mediawiki.org/w/api.php', {
-		    titles: 'User:KHarlan_(WMF)/newcomertasks/templates/' + lang + '.json',
-		    action: 'query',
-		    prop: 'revisions',
-		    rvprop: 'content',
-		    format: 'json',
-		    formatversion: 2,
-		    rvslots: '*',
-		    origin: '*'
-	    }, function ( response ) {
-		    var templates = JSON.parse(
-			    response.query.pages[0].revisions[0].slots.main.content
-			    ),
-			    key;
+		$.get( 'https://www.mediawiki.org/w/api.php', {
+			titles: 'User:KHarlan_(WMF)/newcomertasks/templates/' + lang + '.json',
+			action: 'query',
+			prop: 'revisions',
+			rvprop: 'content',
+			format: 'json',
+			formatversion: 2,
+			rvslots: '*',
+			origin: '*'
+		}, function ( response ) {
+			var templates = JSON.parse(
+					response.query.pages[ 0 ].revisions[ 0 ].slots.main.content
+				),
+				key;
 
-	    	for ( key in templates ) {
-			    taskTypeWidget.addItems( [ new OO.ui.CheckboxMultioptionWidget( {
-				    data: templates[key].templates,
-				    label: templates[key].label
-			    })])
-			    taskTypeTemplateMapping[ key ] = templates[key];
-		    }
-	    } );
+			for ( key in templates ) {
+				taskTypeWidget.addItems( [ new OO.ui.CheckboxMultioptionWidget( {
+					data: templates[ key ].templates,
+					label: templates[ key ].label
+				} ) ] );
+				taskTypeTemplateMapping[ key ] = templates[ key ];
+			}
+		} );
 	}
 
 	langSelectWidget.on( 'select', function ( item ) {
