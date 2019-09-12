@@ -1,18 +1,12 @@
 $( function () {
 	var taskTypeTemplateMapping = {},
 		lang = $( 'html' ).attr( 'lang' ),
-		maxResultsinUi = 10,
+		maxResultsinUi = 10000,
+		topLevelCategories = [],
+		maxDepth = 1,
+		baseConfigSource = 'User:KHarlan_(WMF)',
+		categoryToTopicMapping = {},
 		apiQueryCount = 0,
-		topicsSource = new OO.ui.TextInputWidget( {
-			value: '',
-			title: 'See User:KHarlan_(WMF)/newcomertasks/topics/cs.json for example.',
-			placeholder: 'User:KHarlan_(WMF)/newcomertasks/topics/'
-		} ),
-		templateSource = new OO.ui.TextInputWidget( {
-			value: '',
-			title: 'Source page with templates. See User:KHarlan_(WMF)/newcomertasks/templates/cs.json for example.',
-			placeholder: 'User:KHarlan_(WMF)/newcomertasks/templates/'
-		} ),
 		langSelectWidget = new OO.ui.ButtonSelectWidget( {
 			items: [
 				new OO.ui.ButtonOptionWidget( {
@@ -29,9 +23,6 @@ $( function () {
 				} )
 			]
 		} ),
-		titleInputWidget = new OO.ui.TextInputWidget( {
-			placeholder: 'Pipe-delimited titles for debugging morelikethis. Example: "Inženýrství|Strojírenství" for "Engineering".'
-		} ).toggle( false ),
 		resultCount = 0,
 		info = new OO.ui.MessageWidget( {
 			type: 'notice',
@@ -80,6 +71,10 @@ $( function () {
 		return this.template;
 	};
 
+	TaskOptionWidget.prototype.getCategory = function () {
+		return this.category;
+	};
+
 	topicWidget = new TopicSelectionWidget( {
 		allowArbitrary: false,
 		options: []
@@ -90,7 +85,7 @@ $( function () {
 		$.get( 'https://www.mediawiki.org/w/api.php', {
 			action: 'query',
 			prop: 'revisions',
-			titles: 'User:KHarlan_(WMF)/newcomertasks/topics/' + lang + '.json',
+			titles: baseConfigSource + '/newcomertasks/topics/' + lang + '.json',
 			rvprop: 'content',
 			format: 'json',
 			formatversion: 2,
@@ -101,9 +96,112 @@ $( function () {
 				key;
 			for ( key in topics ) {
 				topicWidget.addOptions( [
-					topicWidget.createMenuOptionWidget( topics[ key ].titles, topics[ key ].label, '' )
+					topicWidget.createMenuOptionWidget( topics[ key ].category, topics[ key ].label, '' )
+				] );
+				categoryToTopicMapping[ topics[ key ].category ] = topics[ key ].label;
+			}
+		} );
+	}
+
+	function getSubcategories( category ) {
+		var subcats = [];
+		return $.get( 'https://' + lang + '.wikipedia.org/w/api.php?', {
+			action: 'query',
+			format: 'json',
+			formatversion: 2,
+			prop: 'categoryinfo',
+			generator: 'categorymembers',
+			gcmtitle: 'Kategorie:' + category,
+			gcmprop: 'ids|title',
+			gcmlimit: 'max',
+			gcmtype: 'subcat',
+			origin: '*'
+		} ).then( function ( result ) {
+			var topic = categoryToTopicMapping[ category ];
+			result.query.pages.forEach( function ( subcat ) {
+				subcats.push( subcat.title.replace( 'Kategorie:', '' ) );
+				categoryToTopicMapping[ subcat.title.replace( 'Kategorie:', '' ) ] = topic;
+			} );
+			return subcats;
+		}, function ( error ) {
+			console.log( 'error', error );
+		} );
+	}
+
+	function appendResultsToTaskOptions( searchResult, template, category ) {
+		if ( list.findItemFromData( searchResult ) === null ) {
+			resultCount += 1;
+			if ( resultCount < maxResultsinUi ) {
+				list.addItems( [
+					new TaskOptionWidget( {
+						data: searchResult,
+						template: template,
+						category: category,
+						label: searchResult.title
+					} )
 				] );
 			}
+		}
+	}
+
+	function doDeepcatAndHasTemplateSearch( category, template, offset, depth ) {
+		var perTemplateQuery = queryParams,
+			deepcatSearch = 'deepcat:"' + category + '"',
+			hasTemplate = 'hastemplate:"' + template + '"',
+			perTemplateSrSearch = srSearch.trim() + ' ' + hasTemplate,
+			inCategorySearch = 'incategory:"' + category + '"',
+			perTemplateInCategorySearch = inCategorySearch.trim() + ' ' + hasTemplate;
+		apiQueryCount += 1;
+		$wrapper.find( '.query-count' )
+			.text( apiQueryCount + ' API queries executed' );
+		$.extend( perTemplateQuery, { srsearch: perTemplateSrSearch.trim() } );
+		$wrapper.find( '.query-debug' )
+			.append( '<br />' )
+			.append( JSON.stringify( perTemplateQuery, null, 2 ) );
+		if ( offset !== 0 ) {
+			queryParams.sroffset = offset;
+		}
+
+		$.get( 'https://' + lang + '.wikipedia.org/w/api.php?', $.extend( queryParams, {
+			srsearch: perTemplateInCategorySearch.trim()
+		} ) ).then( function ( result ) {
+			result.query.search.forEach( function ( searchResult ) {
+				appendResultsToTaskOptions( searchResult, template, category );
+			} );
+		} ).then( function () {
+			if ( depth > maxDepth ) {
+				console.log( 'dont look too deep' );
+				return;
+			}
+			$.get( 'https://' + lang + '.wikipedia.org/w/api.php?', $.extend( queryParams, {
+				srsearch: deepcatSearch + ' ' + hasTemplate
+			} ) ).then( function ( result ) {
+				if ( result.warnings && result.warnings.search && depth < maxDepth ) {
+					getSubcategories( category ).then( function ( subcats ) {
+						subcats.forEach( function ( subcat ) {
+							doDeepcatAndHasTemplateSearch( subcat, template, 0, depth + 1 );
+						} );
+					} );
+				}
+				if ( result.continue && result.continue.sroffset && depth < maxDepth ) {
+					doDeepcatAndHasTemplateSearch(
+						category,
+						template,
+						result.continue.sroffset,
+						depth + 1
+					);
+				}
+
+				result.query.search.forEach( function ( searchResult ) {
+					resultCount += 1;
+					$wrapper.find( '.result-count' )
+						.text( resultCount + ' results found' );
+
+					appendResultsToTaskOptions( searchResult, template, category );
+				} );
+			}, function ( error ) {
+				console.log( 'error', error );
+			} );
 		} );
 	}
 
@@ -116,24 +214,8 @@ $( function () {
 		}
 	}
 
-	function getCategoryLabelForTemplate( template ) {
+	function getTaskTypeFromTemplate( template ) {
 		return taskTypeTemplateMapping[ getCategoryForTemplate( template ) ].label;
-	}
-
-	function appendResultsToTaskOptions( searchResult, template ) {
-
-		if ( list.findItemFromData( searchResult ) === null ) {
-			resultCount += 1;
-			if ( resultCount < maxResultsinUi ) {
-				list.addItems( [
-					new TaskOptionWidget( {
-						data: searchResult,
-						template: template,
-						label: searchResult.title
-					} )
-				] );
-			}
-		}
 	}
 
 	function executeQuery( offset, template ) {
@@ -159,7 +241,6 @@ $( function () {
 	}
 
 	function updateQueryParams() {
-		srSearch = '';
 		info.toggle( false );
 		list.clearItems();
 		list.toggle( true );
@@ -172,22 +253,13 @@ $( function () {
 			delete queryParams.srsearch;
 			return;
 		}
-		if ( moreLike.length ) {
-			srSearch = 'morelikethis:"' + moreLike.flat().join( '|' ) + '"';
+		if ( topLevelCategories.length ) {
+			topLevelCategories.forEach( function ( topLevelCategory ) {
+				hasTemplate.flat().forEach( function ( template ) {
+					doDeepcatAndHasTemplateSearch( topLevelCategory, template, 0, 0 );
+				} );
+			} );
 		}
-		// Override topic selection if we're debugging.
-		if ( titleInputWidget.getValue() ) {
-			srSearch = 'morelikethis:"' + titleInputWidget.getValue() + '"';
-		}
-		hasTemplate.flat().forEach( function ( template ) {
-			var perTemplateQuery = queryParams,
-				perTemplateSrSearch = srSearch.trim() + ' hastemplate:"' + template + '"';
-			$.extend( perTemplateQuery, { srsearch: perTemplateSrSearch.trim() } );
-			$wrapper.find( '.query-debug' )
-				.append( '<br />' )
-				.append( JSON.stringify( perTemplateQuery, null, 2 ) );
-			executeQuery( 0, template );
-		} );
 
 	}
 
@@ -204,15 +276,15 @@ $( function () {
 				item.data.snippet +
 			'<br>' +
 			'<p><strong>Template:</strong> ' + item.getTemplate() + ' ' +
-			'<strong>Category:</strong> ' + getCategoryLabelForTemplate( item.getTemplate() ) + '</p>' )
+			'<strong>Category:</strong> ' + item.getCategory() + ' ' +
+			'<strong>Task type:</strong> ' + getTaskTypeFromTemplate( item.getTemplate() ) + '</p>' )
 		);
 		info.setIcon( getIconForTemplate( item.getTemplate() ) );
 	} );
 
 	topicWidget.on( 'change', function () {
-		moreLike = [];
 		topicWidget.getItems().forEach( function ( item ) {
-			moreLike.push( item.data );
+			topLevelCategories.push( item.data );
 		} );
 		updateQueryParams();
 	} );
@@ -220,7 +292,7 @@ $( function () {
 	function getTemplatesForLang( lang ) {
 		taskTypeWidget.clearItems();
 		$.get( 'https://www.mediawiki.org/w/api.php', {
-			titles: 'User:KHarlan_(WMF)/newcomertasks/templates/' + lang + '.json',
+			titles: baseConfigSource + '/newcomertasks/templates/' + lang + '.json',
 			action: 'query',
 			prop: 'revisions',
 			rvprop: 'content',
@@ -271,18 +343,6 @@ $( function () {
 	} );
 
 	$wrapper.append(
-		new OO.ui.FieldLayout( topicsSource, {
-			align: 'left',
-			label: 'Source page for topics',
-			value: 'User:KHarlan_(WMF)/newcomertasks/topics/',
-			help: 'See https://www.mediawiki.org/wiki/User:KHarlan_(WMF)/newcomertasks/topics/cs.json for example.'
-		} ).toggle( false ).$element,
-		new OO.ui.FieldLayout( templateSource, {
-			align: 'left',
-			label: 'Source page for templates',
-			value: 'User:KHarlan_(WMF)/newcomertasks/templates/',
-			help: 'See https://www.mediawiki.org/wiki/User:KHarlan_(WMF)/newcomertasks/templates/cs.json for example.'
-		} ).toggle( false ).$element,
 		langSelectWidget.$element,
 		topicWidget.$element,
 		taskTypeWidget.$element,
