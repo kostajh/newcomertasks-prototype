@@ -3,16 +3,6 @@ $( function () {
 		lang = $( 'html' ).attr( 'lang' ),
 		maxResultsinUi = 10,
 		apiQueryCount = 0,
-		topicsSource = new OO.ui.TextInputWidget( {
-			value: '',
-			title: 'See User:KHarlan_(WMF)/newcomertasks/topics/cs.json for example.',
-			placeholder: 'User:KHarlan_(WMF)/newcomertasks/topics/'
-		} ),
-		templateSource = new OO.ui.TextInputWidget( {
-			value: '',
-			title: 'Source page with templates. See User:KHarlan_(WMF)/newcomertasks/templates/cs.json for example.',
-			placeholder: 'User:KHarlan_(WMF)/newcomertasks/templates/'
-		} ),
 		langSelectWidget = new OO.ui.ButtonSelectWidget( {
 			items: [
 				new OO.ui.ButtonOptionWidget( {
@@ -29,9 +19,6 @@ $( function () {
 				} )
 			]
 		} ),
-		titleInputWidget = new OO.ui.TextInputWidget( {
-			placeholder: 'Pipe-delimited titles for debugging morelikethis. Example: "Inženýrství|Strojírenství" for "Engineering".'
-		} ).toggle( false ),
 		resultCount = 0,
 		info = new OO.ui.MessageWidget( {
 			type: 'notice',
@@ -47,7 +34,6 @@ $( function () {
 
 		} ),
 		hasTemplate = [],
-		moreLike = [],
 		srSearch = '',
 		list = new OO.ui.SelectWidget( {
 			classes: [ 'newcomer-tasks' ]
@@ -55,10 +41,12 @@ $( function () {
 		queryParams = {
 			action: 'query',
 			format: 'json',
-			list: 'search',
-			srlimit: 'max',
-			srnamespace: 0,
-			srqiprofile: 'classic_noboostlinks',
+			formatversion: 2,
+			generator: 'search',
+			gsrnamespace: 0,
+			gsrwhat: 'text',
+			gsrprop: 'snippet',
+			gsrqiprofile: 'classic_noboostlinks',
 			origin: '*'
 		},
 		TaskOptionWidget = function ( config ) {
@@ -67,45 +55,15 @@ $( function () {
 			this.template = config.template;
 			this.category = config.category;
 		},
-		topicWidget,
-		TopicSelectionWidget = function ( config ) {
-			config = config || {};
-			TopicSelectionWidget.parent.call( this, config );
-		};
+		searchWidget = new OO.ui.SearchInputWidget();
 
 	OO.inheritClass( TaskOptionWidget, OO.ui.OptionWidget );
-	OO.inheritClass( TopicSelectionWidget, OO.ui.MenuTagMultiselectWidget );
 
 	TaskOptionWidget.prototype.getTemplate = function () {
 		return this.template;
 	};
 
-	topicWidget = new TopicSelectionWidget( {
-		allowArbitrary: false,
-		options: []
-	} );
 
-	function getTopicsForLang( lang ) {
-		topicWidget.getMenu().clearItems();
-		$.get( 'https://www.mediawiki.org/w/api.php', {
-			action: 'query',
-			prop: 'revisions',
-			titles: 'User:KHarlan_(WMF)/newcomertasks/topics/' + lang + '.json',
-			rvprop: 'content',
-			format: 'json',
-			formatversion: 2,
-			rvslots: '*',
-			origin: '*'
-		}, function ( response ) {
-			var topics = JSON.parse( response.query.pages[ 0 ].revisions[ 0 ].slots.main.content ),
-				key;
-			for ( key in topics ) {
-				topicWidget.addOptions( [
-					topicWidget.createMenuOptionWidget( topics[ key ].titles, topics[ key ].label, '' )
-				] );
-			}
-		} );
-	}
 
 	function getCategoryForTemplate( template ) {
 		var category;
@@ -143,9 +101,11 @@ $( function () {
 		}
 		$.get( 'https://' + lang + '.wikipedia.org/w/api.php?', queryParams )
 			.then( function ( result ) {
-				result.query.search.forEach( function ( searchResult ) {
-					appendResultsToTaskOptions( searchResult, template );
-				} );
+				if ( result.query ) {
+					result.query.pages.forEach(function (searchResult) {
+						appendResultsToTaskOptions(searchResult, template);
+					} );
+				}
 				$wrapper.find( '.result-count' )
 					.text( resultCount + ' results found' );
 				$wrapper.find( '.query-count' )
@@ -172,17 +132,13 @@ $( function () {
 			delete queryParams.srsearch;
 			return;
 		}
-		if ( moreLike.length ) {
-			srSearch = 'morelikethis:"' + moreLike.flat().join( '|' ) + '"';
-		}
-		// Override topic selection if we're debugging.
-		if ( titleInputWidget.getValue() ) {
-			srSearch = 'morelikethis:"' + titleInputWidget.getValue() + '"';
+		if ( searchWidget.getValue().length ) {
+			srSearch = '"' + searchWidget.getValue() + '"';
 		}
 		hasTemplate.flat().forEach( function ( template ) {
 			var perTemplateQuery = queryParams,
-				perTemplateSrSearch = srSearch.trim() + ' hastemplate:"' + template + '"';
-			$.extend( perTemplateQuery, { srsearch: perTemplateSrSearch.trim() } );
+				perTemplateSrSearch = 'hastemplate:"' + template + '" ' + srSearch.trim();
+			$.extend( perTemplateQuery, { gsrsearch: perTemplateSrSearch.trim() } );
 			$wrapper.find( '.query-debug' )
 				.append( '<br />' )
 				.append( JSON.stringify( perTemplateQuery, null, 2 ) );
@@ -190,6 +146,8 @@ $( function () {
 		} );
 
 	}
+
+	searchWidget.on( 'change', $.debounce( 250, updateQueryParams ) );
 
 	function getIconForTemplate( templateName ) {
 		return taskTypeTemplateMapping[ getCategoryForTemplate( templateName ) ].icon;
@@ -201,20 +159,12 @@ $( function () {
 			new OO.ui.HtmlSnippet(
 				'<strong><a href="https://' + lang + '.wikipedia.org/wiki/' + item.data.title + '">' + item.data.title + '</a></strong>' +
 				'<br>' +
-				item.data.snippet +
+				item.data.gsrsnippet +
 			'<br>' +
 			'<p><strong>Template:</strong> ' + item.getTemplate() + ' ' +
 			'<strong>Category:</strong> ' + getCategoryLabelForTemplate( item.getTemplate() ) + '</p>' )
 		);
 		info.setIcon( getIconForTemplate( item.getTemplate() ) );
-	} );
-
-	topicWidget.on( 'change', function () {
-		moreLike = [];
-		topicWidget.getItems().forEach( function ( item ) {
-			moreLike.push( item.data );
-		} );
-		updateQueryParams();
 	} );
 
 	function getTemplatesForLang( lang ) {
@@ -248,7 +198,6 @@ $( function () {
 		$( 'html' ).attr( 'lang', item.data );
 		lang = item.data;
 		hasTemplate = [];
-		getTopicsForLang( lang );
 		getTemplatesForLang( lang );
 		updateQueryParams();
 	} );
@@ -271,21 +220,9 @@ $( function () {
 	} );
 
 	$wrapper.append(
-		new OO.ui.FieldLayout( topicsSource, {
-			align: 'left',
-			label: 'Source page for topics',
-			value: 'User:KHarlan_(WMF)/newcomertasks/topics/',
-			help: 'See https://www.mediawiki.org/wiki/User:KHarlan_(WMF)/newcomertasks/topics/cs.json for example.'
-		} ).toggle( false ).$element,
-		new OO.ui.FieldLayout( templateSource, {
-			align: 'left',
-			label: 'Source page for templates',
-			value: 'User:KHarlan_(WMF)/newcomertasks/templates/',
-			help: 'See https://www.mediawiki.org/wiki/User:KHarlan_(WMF)/newcomertasks/templates/cs.json for example.'
-		} ).toggle( false ).$element,
 		langSelectWidget.$element,
-		topicWidget.$element,
 		taskTypeWidget.$element,
+		searchWidget.$element,
 		info.$element,
 		$resultCountHtml,
 		$queryCountHtml,
