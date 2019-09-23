@@ -1,18 +1,7 @@
 $( function () {
 	var taskTypeTemplateMapping = {},
 		lang = $( 'html' ).attr( 'lang' ),
-		maxResultsinUi = 10,
 		apiQueryCount = 0,
-		topicsSource = new OO.ui.TextInputWidget( {
-			value: '',
-			title: 'See User:KHarlan_(WMF)/newcomertasks/topics/cs.json for example.',
-			placeholder: 'User:KHarlan_(WMF)/newcomertasks/topics/'
-		} ),
-		templateSource = new OO.ui.TextInputWidget( {
-			value: '',
-			title: 'Source page with templates. See User:KHarlan_(WMF)/newcomertasks/templates/cs.json for example.',
-			placeholder: 'User:KHarlan_(WMF)/newcomertasks/templates/'
-		} ),
 		langSelectWidget = new OO.ui.ButtonSelectWidget( {
 			items: [
 				new OO.ui.ButtonOptionWidget( {
@@ -26,12 +15,13 @@ $( function () {
 				new OO.ui.ButtonOptionWidget( {
 					data: 'ko',
 					label: 'ko'
+				} ),
+				new OO.ui.ButtonOptionWidget( {
+					data: 'vi',
+					label: 'vi'
 				} )
 			]
 		} ),
-		titleInputWidget = new OO.ui.TextInputWidget( {
-			placeholder: 'Pipe-delimited titles for debugging morelikethis. Example: "Inženýrství|Strojírenství" for "Engineering".'
-		} ).toggle( false ),
 		resultCount = 0,
 		info = new OO.ui.MessageWidget( {
 			type: 'notice',
@@ -56,7 +46,7 @@ $( function () {
 			action: 'query',
 			format: 'json',
 			list: 'search',
-			srlimit: 'max',
+			srlimit: '10',
 			srnamespace: 0,
 			srqiprofile: 'classic_noboostlinks',
 			origin: '*'
@@ -110,10 +100,11 @@ $( function () {
 	function getCategoryForTemplate( template ) {
 		var category;
 		for ( category in taskTypeTemplateMapping ) {
-			if ( taskTypeTemplateMapping[ category ].templates.indexOf( template ) !== -1 ) {
+			if ( taskTypeTemplateMapping[ category ].templates.join( '|' ) === template ) {
 				return category;
 			}
 		}
+		throw Error( 'no category' );
 	}
 
 	function getCategoryLabelForTemplate( template ) {
@@ -124,15 +115,13 @@ $( function () {
 
 		if ( list.findItemFromData( searchResult ) === null ) {
 			resultCount += 1;
-			if ( resultCount < maxResultsinUi ) {
-				list.addItems( [
-					new TaskOptionWidget( {
-						data: searchResult,
-						template: template,
-						label: searchResult.title
-					} )
-				] );
-			}
+			list.addItems( [
+				new TaskOptionWidget( {
+					data: searchResult,
+					template: template,
+					label: searchResult.title
+				} )
+			] );
 		}
 	}
 
@@ -151,7 +140,7 @@ $( function () {
 				$wrapper.find( '.query-count' )
 					.text( apiQueryCount + ' API queries executed' );
 				if ( result.continue ) {
-					executeQuery( result.continue.sroffset, template );
+					// executeQuery( result.continue.sroffset, template );
 				}
 			}, function ( err ) {
 				console.log( err );
@@ -159,6 +148,7 @@ $( function () {
 	}
 
 	function updateQueryParams() {
+		var templateQuery;
 		srSearch = '';
 		info.toggle( false );
 		list.clearItems();
@@ -172,21 +162,20 @@ $( function () {
 			delete queryParams.srsearch;
 			return;
 		}
-		if ( moreLike.length ) {
-			srSearch = 'morelikethis:"' + moreLike.flat().join( '|' ) + '"';
-		}
-		// Override topic selection if we're debugging.
-		if ( titleInputWidget.getValue() ) {
-			srSearch = 'morelikethis:"' + titleInputWidget.getValue() + '"';
-		}
-		hasTemplate.flat().forEach( function ( template ) {
-			var perTemplateQuery = queryParams,
-				perTemplateSrSearch = srSearch.trim() + ' hastemplate:"' + template + '"';
-			$.extend( perTemplateQuery, { srsearch: perTemplateSrSearch.trim() } );
-			$wrapper.find( '.query-debug' )
-				.append( '<br />' )
-				.append( JSON.stringify( perTemplateQuery, null, 2 ) );
-			executeQuery( 0, template );
+		hasTemplate.forEach( function ( templateGroup ) {
+			templateQuery = templateGroup.join( '|' );
+			srSearch = 'hastemplate:"' + templateQuery + '"';
+			if ( moreLike.length ) {
+				moreLike.flat().forEach( function ( topic ) {
+					var perTopicQueryParams = queryParams,
+						perTopicSrSearch = srSearch.trim() + ' morelikethis:"' + topic + '"';
+					$.extend( perTopicQueryParams, { srsearch: perTopicSrSearch.trim() } );
+					executeQuery( 0, templateQuery );
+				} );
+			} else {
+				$.extend( queryParams, { srsearch: srSearch.trim() } );
+				executeQuery( 0, templateQuery );
+			}
 		} );
 
 	}
@@ -271,18 +260,6 @@ $( function () {
 	} );
 
 	$wrapper.append(
-		new OO.ui.FieldLayout( topicsSource, {
-			align: 'left',
-			label: 'Source page for topics',
-			value: 'User:KHarlan_(WMF)/newcomertasks/topics/',
-			help: 'See https://www.mediawiki.org/wiki/User:KHarlan_(WMF)/newcomertasks/topics/cs.json for example.'
-		} ).toggle( false ).$element,
-		new OO.ui.FieldLayout( templateSource, {
-			align: 'left',
-			label: 'Source page for templates',
-			value: 'User:KHarlan_(WMF)/newcomertasks/templates/',
-			help: 'See https://www.mediawiki.org/wiki/User:KHarlan_(WMF)/newcomertasks/templates/cs.json for example.'
-		} ).toggle( false ).$element,
 		langSelectWidget.$element,
 		topicWidget.$element,
 		taskTypeWidget.$element,
