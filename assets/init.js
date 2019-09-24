@@ -212,7 +212,6 @@ $( function () {
 		apiQueryCount = 0;
 		$wrapper.find( '.result-count' ).toggle( true );
 		$wrapper.find( '.query-count' ).toggle( true );
-		$wrapper.find( '.query-debug' ).text( '' );
 		if ( !hasTemplate.length ) {
 			delete queryParams.srsearch;
 			return;
