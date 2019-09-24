@@ -1,7 +1,22 @@
 $( function () {
 	var taskTypeTemplateMapping = {},
 		lang = $( 'html' ).attr( 'lang' ),
+		queryLimit = 10,
 		apiQueryCount = 0,
+		resetButton = new OO.ui.ButtonWidget( {
+			label: 'Reset',
+			flags: [
+				'primary',
+				'destructive'
+			]
+		} ),
+		searchButton = new OO.ui.ButtonWidget( {
+			label: 'Search',
+			flags: [
+				'primary',
+				'progressive'
+			]
+		} ),
 		langSelectWidget = new OO.ui.ButtonSelectWidget( {
 			items: [
 				new OO.ui.ButtonOptionWidget( {
@@ -46,7 +61,7 @@ $( function () {
 			action: 'query',
 			format: 'json',
 			list: 'search',
-			srlimit: '10',
+			srlimit: queryLimit,
 			srnamespace: 0,
 			srqiprofile: 'classic_noboostlinks',
 			origin: '*'
@@ -74,6 +89,13 @@ $( function () {
 		allowArbitrary: false,
 		options: []
 	} );
+
+	// TODO:
+	// [] limit configurable
+	// [] srcontinue configurable
+	// [] OR/AND for morelike configurable
+	// [] search button and reset button
+	// [] freetext search mode
 
 	function getTopicsForLang( lang ) {
 		topicWidget.getMenu().clearItems();
@@ -166,12 +188,12 @@ $( function () {
 			templateQuery = templateGroup.join( '|' );
 			srSearch = 'hastemplate:"' + templateQuery + '"';
 			if ( moreLike.length ) {
-				moreLike.flat().forEach( function ( topic ) {
-					var perTopicQueryParams = queryParams,
-						perTopicSrSearch = srSearch.trim() + ' morelikethis:"' + topic + '"';
-					$.extend( perTopicQueryParams, { srsearch: perTopicSrSearch.trim() } );
-					executeQuery( 0, templateQuery );
-				} );
+				// moreLike.flat().forEach( function ( topic ) {
+				var perTopicQueryParams = queryParams,
+					perTopicSrSearch = srSearch.trim() + ' morelikethis:"' + moreLike.flat().join( '|' ) + '"';
+				$.extend( perTopicQueryParams, { srsearch: perTopicSrSearch.trim() } );
+				executeQuery( 0, templateQuery );
+				// } );
 			} else {
 				$.extend( queryParams, { srsearch: srSearch.trim() } );
 				executeQuery( 0, templateQuery );
