@@ -71,8 +71,8 @@ $( function () {
 				head: true,
 				label: null,
 				$content: $(
-					'<p>Topics are editable at https://www.mediawiki.org/wiki/Growth/Personalized_first_day/Newcomer_tasks/Prototype/topics/{langCode}.json</p>' +
-					'<p>Templates (task types) are editable at https://www.mediawiki.org/wiki/Growth/Personalized_first_day/Newcomer_tasks/Prototype/templates/{langCode}.json</p>'
+					'<p>Topics are editable at <em>https://www.mediawiki.org/wiki/Growth/Personalized_first_day/Newcomer_tasks/Prototype/topics/{langCode}.json</em></p>' +
+					'<p>Templates (task types) are editable at <em>https://www.mediawiki.org/wiki/Growth/Personalized_first_day/Newcomer_tasks/Prototype/templates/{langCode}.json</em></p>'
 				),
 				padded: true,
 				align: 'force-right'
