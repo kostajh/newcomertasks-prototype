@@ -3,6 +3,59 @@ $( function () {
 		lang = $( 'html' ).attr( 'lang' ),
 		queryLimit = 25,
 		apiQueryCount = 0,
+		searchProfileHelp = new OO.ui.PopupButtonWidget( {
+			icon: 'info',
+			framed: false,
+			label: 'More information',
+			invisibleLabel: true,
+			popup: {
+				head: true,
+				label: 'More information',
+				$content: $( '<p>See srqiprofile <a href="https://www.mediawiki.org/wiki/API:Search">here</a></p>' ),
+				padded: true,
+				align: 'forwards'
+			}
+		} ),
+		searchProfileWidget = new OO.ui.DropdownWidget( {
+			label: 'srqiprofile',
+			menu: {
+				items: [
+					new OO.ui.MenuOptionWidget( {
+						data: 'classic',
+						label: 'classic'
+					} ),
+					new OO.ui.MenuOptionWidget( {
+						data: 'classic_noboostlinks',
+						label: 'classic_noboostlinks',
+						selected: true
+					} ),
+					new OO.ui.MenuOptionWidget( {
+						data: 'empty',
+						label: 'empty'
+					} ),
+					new OO.ui.MenuOptionWidget( {
+						data: 'wsum_inclinks',
+						label: 'wsum_inclinks'
+					} ),
+					new OO.ui.MenuOptionWidget( {
+						data: 'wsum_inclinks_pv',
+						label: 'wsum_inclinks_pv'
+					} ),
+					new OO.ui.MenuOptionWidget( {
+						data: 'popular_inclinks_pv',
+						label: 'popular_inclinks_pv'
+					} ),
+					new OO.ui.MenuOptionWidget( {
+						data: 'popular_inclinks',
+						label: 'popular_inclinks'
+					} ),
+					new OO.ui.MenuOptionWidget( {
+						data: 'engine_autoselect',
+						label: 'engine_autoselect'
+					} )
+				]
+			}
+		} ),
 		moreLikeOverrideWidget = new OO.ui.ButtonWidget( {
 			label: null,
 			flags: [
@@ -122,7 +175,20 @@ $( function () {
 				new OO.ui.Widget( {
 					content: [
 						new OO.ui.HorizontalLayout( {
-							items: [ helpWidget, langSelectWidget, topicWidget, taskTypeWidget ]
+							items: [
+								helpWidget, langSelectWidget, topicWidget, taskTypeWidget
+							]
+						} )
+					]
+				} )
+			),
+			new OO.ui.FieldLayout(
+				new OO.ui.Widget( {
+					content: [
+						new OO.ui.HorizontalLayout( {
+							items: [
+								searchProfileHelp, searchProfileWidget
+							]
 						} )
 					]
 				} )
@@ -172,7 +238,7 @@ $( function () {
 				return category;
 			}
 		}
-		throw Error( 'no category' );
+		throw Error( 'No category :(' );
 	}
 
 	function getCategoryLabelForTemplate( template ) {
@@ -216,7 +282,8 @@ $( function () {
 	}
 
 	function doSearch() {
-		var templateQuery;
+		var templateQuery,
+			srqiprofile = searchProfileWidget.getMenu().findSelectedItem().getData();
 		moreLike = [];
 		hasTemplate = [];
 		if ( moreLikeOverrideWidget.getData() ) {
@@ -250,7 +317,10 @@ $( function () {
 				moreLike.forEach( function ( topicTitles ) {
 					var perTopicQueryParams = queryParams,
 						perTopicSrSearch = srSearch.trim() + ' morelikethis:"' + topicTitles.flat().join( '|' ) + '"';
-					$.extend( perTopicQueryParams, { srsearch: perTopicSrSearch.trim() } );
+					$.extend( perTopicQueryParams, {
+						srsearch: perTopicSrSearch.trim(),
+						srqiprofile: srqiprofile
+					} );
 					executeQuery( 0, templateQuery );
 				} );
 			} else {
