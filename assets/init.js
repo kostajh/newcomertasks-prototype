@@ -3,6 +3,28 @@ $( function () {
 		lang = $( 'html' ).attr( 'lang' ),
 		queryLimit = 25,
 		apiQueryCount = 0,
+		moreLikeOverrideWidget = new OO.ui.ButtonWidget( {
+			label: null,
+			flags: [
+				'progressive'
+			]
+		} ).toggle( false ),
+		helpWidget = new OO.ui.PopupButtonWidget( {
+			icon: 'info',
+			framed: false,
+			label: 'More information',
+			invisibleLabel: true,
+			popup: {
+				head: true,
+				label: null,
+				$content: $(
+					'<p>Topics are editable at https://www.mediawiki.org/wiki/Growth/Personalized_first_day/Newcomer_tasks/Prototype/topics/{langCode}.json</p>' +
+					'<p>Templates (task types) are editable at https://www.mediawiki.org/wiki/Growth/Personalized_first_day/Newcomer_tasks/Prototype/templates/{langCode}.json</p>'
+				),
+				padded: true,
+				align: 'force-right'
+			}
+		} ),
 		resetButton = new OO.ui.ButtonWidget( {
 			label: 'Reset',
 			flags: [
@@ -100,7 +122,7 @@ $( function () {
 				new OO.ui.Widget( {
 					content: [
 						new OO.ui.HorizontalLayout( {
-							items: [ langSelectWidget, topicWidget, taskTypeWidget ]
+							items: [ helpWidget, langSelectWidget, topicWidget, taskTypeWidget ]
 						} )
 					]
 				} )
@@ -109,7 +131,7 @@ $( function () {
 				new OO.ui.Widget( {
 					content: [
 						new OO.ui.HorizontalLayout( {
-							items: [ searchButton, resetButton ]
+							items: [ searchButton, resetButton, moreLikeOverrideWidget ]
 						} )
 					]
 				} ) )
@@ -118,6 +140,7 @@ $( function () {
 
 	// TODO:
 	// [] freetext search mode
+	// [] Override morelike
 
 	function getTopicsForLang( lang ) {
 		topicWidget.clearItems();
@@ -125,7 +148,7 @@ $( function () {
 		$.get( 'https://www.mediawiki.org/w/api.php', {
 			action: 'query',
 			prop: 'revisions',
-			titles: 'User:KHarlan_(WMF)/newcomertasks/topics/' + lang + '.json',
+			titles: 'Growth/Personalized_first_day/Newcomer_tasks/Prototype/topics/' + lang + '.json',
 			rvprop: 'content',
 			format: 'json',
 			formatversion: 2,
@@ -196,9 +219,13 @@ $( function () {
 		var templateQuery;
 		moreLike = [];
 		hasTemplate = [];
-		topicWidget.getItems().forEach( function ( item ) {
-			moreLike.push( item.data );
-		} );
+		if ( moreLikeOverrideWidget.getData() ) {
+			moreLike.push( [ moreLikeOverrideWidget.getData() ] );
+		} else {
+			topicWidget.getItems().forEach( function ( item ) {
+				moreLike.push( item.data );
+			} );
+		}
 		taskTypeWidget.getItems().forEach( function ( item ) {
 			if ( item.selected ) {
 				hasTemplate.push( item.data );
@@ -249,33 +276,48 @@ $( function () {
 			'<strong>Category:</strong> ' + getCategoryLabelForTemplate( item.getTemplate() ) + '</p>' )
 		);
 		info.setIcon( getIconForTemplate( item.getTemplate() ) );
+		moreLikeOverrideWidget.setData( item.data.title );
+		moreLikeOverrideWidget.toggle( true );
+		moreLikeOverrideWidget.setLabel( 'Morelike search with ' + item.data.title );
 	} );
 
 	searchButton.on( 'click', function () {
 		doSearch();
 	} );
 
-	resetButton.on( 'click', function () {
-		var selectedItem = langSelectWidget.findSelectedItem();
+	moreLikeOverrideWidget.on( 'click', function () {
+		doSearch();
+	} );
+
+	function doReset() {
 		moreLike = [];
 		hasTemplate = [];
 		apiQueryCount = 0;
 		resultCount = 0;
 		taskTypeTemplateMapping = [];
-		if ( selectedItem ) {
-			langSelectWidget.unselectItem( selectedItem );
-		}
 		taskTypeWidget.clearItems();
 		topicWidget.clearItems();
 		topicWidget.getMenu().clearItems();
 		topicWidget.setDisabled( true );
 		searchButton.setDisabled( true );
+		moreLikeOverrideWidget.toggle( false );
+		list.clearItems();
+		$wrapper.find( '.result-count' )
+			.toggle( false )
+			.text( '' );
+		$wrapper.find( '.query-count' )
+			.toggle( false )
+			.text( '' );
+	}
+
+	resetButton.on( 'click', function () {
+		doReset();
 	} );
 
 	function getTemplatesForLang( lang ) {
 		taskTypeWidget.clearItems();
 		$.get( 'https://www.mediawiki.org/w/api.php', {
-			titles: 'User:KHarlan_(WMF)/newcomertasks/templates/' + lang + '.json',
+			titles: 'Growth/Personalized_first_day/Newcomer_tasks/Prototype/templates/' + lang + '.json',
 			action: 'query',
 			prop: 'revisions',
 			rvprop: 'content',
@@ -312,6 +354,7 @@ $( function () {
 		if ( !item ) {
 			return;
 		}
+		doReset();
 		$( 'html' ).attr( 'lang', item.data );
 		lang = item.data;
 		hasTemplate = [];
