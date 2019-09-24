@@ -117,7 +117,6 @@ $( function () {
 	} );
 
 	// TODO:
-	// [] OR/AND for morelike configurable
 	// [] freetext search mode
 
 	function getTopicsForLang( lang ) {
