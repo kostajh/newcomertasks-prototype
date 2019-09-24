@@ -10,7 +10,7 @@ $( function () {
 		instructionsWidget = new OO.ui.PopupButtonWidget( {
 			icon: 'help',
 			framed: false,
-			label: null,
+			label: 'Help',
 			popup: {
 				head: true,
 				label: null,
