@@ -16,19 +16,6 @@
     <script src="assets/init.js"></script>
 </head>
 <body>
-<div class="wrapper">
-   <h1>morelike search topic matching</h1>
-    <ul>
-        <li>Templates and topics are loaded from <em>mediawiki.org/wiki/Growth/Personalized_first_day/Newcomer_tasks/Prototype/templates/{langCode}.json</em> and  <em>mediawiki.org/wiki/Growth/Personalized_first_day/Newcomer_tasks/Prototype/topics/{langCode}.json</em></li>
-        <li>A <em>morelikethis</em> search is executed using pipe delimited Topic titles. So if your "Sport" topic has "Football" and "Basketball", you'll see <em>morelikethis:Football|Basketball</em>. This is a logical <strong>AND</strong> search, because <em>morelike</em> is using all the words from these two articles as the seed for a search.</li>
-        <ul>
-            <li>However, if multiple topics are selected, those are all logical <strong>OR</strong> searches.</li>
-        </ul>
-        <li>You can adjust the "qiprofile" used with the search. More detail on that in the help icon next to the dropdown.</li>
-        <li>After making a search and clicking on an entry, a new button appears that lets you test out a <em>morelike</em> search using the existing task type selection and <em>morelikethis:{currentArticle}</em></li>
-        <li>The app will pull down <strong>all</strong> available results. So if you don't select a topic with Czech and click on "Kopírovat úpravy" you'll end up with thousands of results. If your browser starts to hang, reload the window and start over ¯\_(ツ)_/¯</li>
-        <li>To see the actual search queries being performed, right click in the browser, select "Inspect element", then click on the Network tab and look at the API requests being made.</li>
-    </ul>
-</div>
+<div class="wrapper"></div>
 </body>
 </html>

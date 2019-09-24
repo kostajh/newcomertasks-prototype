@@ -3,21 +3,41 @@ $( function () {
 		lang = $( 'html' ).attr( 'lang' ),
 		queryLimit = 25,
 		apiQueryCount = 0,
+		instructionsWidget = new OO.ui.PopupButtonWidget( {
+			icon: 'help',
+			framed: false,
+			label: null,
+			popup: {
+				head: true,
+				label: null,
+				$content: $( '<p><ul>' +
+					'<li>Templates and topics are loaded from mediawiki.org/wiki/Growth/Personalized_first_day/Newcomer_tasks/Prototype/templates/{langCode}.json and mediawiki.org/wiki/Growth/Personalized_first_day/Newcomer_tasks/Prototype/topics/{langCode}.json</li>' +
+					'<li>A morelikethis search is executed using pipe delimited Topic titles. So if your "Sport" topic has "Football" and "Basketball", you\'ll see morelikethis:Football|Basketball. This is a logical AND search, because morelike is using all the words from these two articles as the seed for a search.</li>' +
+					'<li>However, if multiple topics are selected, those are all logical OR searches.</li>' +
+					'<li>You can adjust the "qiprofile" used with the search. More detail on that in the help icon next to the dropdown.</li>' +
+					'<li>After making a search and clicking on an entry, a new button appears that lets you test out a morelike search using the existing task type selection and morelikethis:{currentArticle}</li>' +
+					'<li>The app will pull down all available results. So if you don\'t select a topic with Czech and click on "Kopírovat úpravy" you\'ll end up with thousands of results. If your browser starts to hang, reload the window and start over ¯\\_(ツ)_/¯</li>' +
+					'<li>To see the actual search queries being performed, right click in the browser, select "Inspect element", then click on the Network tab and look at the API requests being made.</li>' +
+					'</ul></p>' ),
+				padded: true,
+				align: 'bottom'
+			}
+		} ),
 		searchProfileHelp = new OO.ui.PopupButtonWidget( {
 			icon: 'info',
 			framed: false,
-			label: 'More information',
+			label: null,
 			invisibleLabel: true,
 			popup: {
 				head: true,
-				label: 'More information',
+				label: null,
 				$content: $( '<p>See srqiprofile <a href="https://www.mediawiki.org/wiki/API:Search">here</a></p>' ),
 				padded: true,
 				align: 'forwards'
 			}
 		} ),
 		searchProfileWidget = new OO.ui.DropdownWidget( {
-			label: 'srqiprofile',
+			label: 'srqiprofile (classic_noboostlinks)',
 			menu: {
 				items: [
 					new OO.ui.MenuOptionWidget( {
@@ -65,7 +85,7 @@ $( function () {
 		helpWidget = new OO.ui.PopupButtonWidget( {
 			icon: 'info',
 			framed: false,
-			label: 'More information',
+			label: null,
 			invisibleLabel: true,
 			popup: {
 				head: true,
@@ -171,6 +191,13 @@ $( function () {
 	controls = new OO.ui.FieldsetLayout( {
 		label: null,
 		items: [
+			new OO.ui.FieldLayout(
+				new OO.ui.Widget( {
+					content: [
+						instructionsWidget
+					]
+				} )
+			),
 			new OO.ui.FieldLayout(
 				new OO.ui.Widget( {
 					content: [
@@ -352,10 +379,19 @@ $( function () {
 	} );
 
 	searchButton.on( 'click', function () {
+		moreLikeOverrideWidget.setData( '' );
+		moreLikeOverrideWidget.toggle( false );
 		doSearch();
 	} );
 
 	moreLikeOverrideWidget.on( 'click', function () {
+		list.clearItems();
+		$wrapper.find( '.result-count' )
+			.toggle( false )
+			.text( '' );
+		$wrapper.find( '.query-count' )
+			.toggle( false )
+			.text( '' );
 		doSearch();
 	} );
 
