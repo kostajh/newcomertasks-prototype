@@ -299,6 +299,15 @@ $( function () {
 		} );
 	}
 
+	taskTypeWidget.on( 'select', function () {
+		searchButton.setDisabled( true );
+		taskTypeWidget.getItems().forEach( function ( item ) {
+			if ( item.isSelected() ) {
+				searchButton.setDisabled( false );
+			}
+		} );
+	} );
+
 	langSelectWidget.on( 'select', function ( item ) {
 		if ( !item ) {
 			return;
