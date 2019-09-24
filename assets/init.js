@@ -1,7 +1,7 @@
 $( function () {
 	var taskTypeTemplateMapping = {},
 		lang = $( 'html' ).attr( 'lang' ),
-		queryLimit = 10,
+		queryLimit = 25,
 		apiQueryCount = 0,
 		resetButton = new OO.ui.ButtonWidget( {
 			label: 'Reset',
@@ -17,6 +17,7 @@ $( function () {
 				'progressive'
 			]
 		} ),
+
 		langSelectWidget = new OO.ui.ButtonSelectWidget( {
 			items: [
 				new OO.ui.ButtonOptionWidget( {
@@ -73,6 +74,7 @@ $( function () {
 			this.category = config.category;
 		},
 		topicWidget,
+		controls,
 		TopicSelectionWidget = function ( config ) {
 			config = config || {};
 			TopicSelectionWidget.parent.call( this, config );
@@ -87,17 +89,39 @@ $( function () {
 
 	topicWidget = new TopicSelectionWidget( {
 		allowArbitrary: false,
-		options: []
+		options: [],
+		disabled: true
+	} );
+
+	controls = new OO.ui.FieldsetLayout( {
+		label: null,
+		items: [
+			new OO.ui.FieldLayout(
+				new OO.ui.Widget( {
+					content: [
+						new OO.ui.HorizontalLayout( {
+							items: [ langSelectWidget, topicWidget, taskTypeWidget ]
+						} )
+					]
+				} )
+			),
+			new OO.ui.FieldLayout(
+				new OO.ui.Widget( {
+					content: [
+						new OO.ui.HorizontalLayout( {
+							items: [ searchButton, resetButton ]
+						} )
+					]
+				} ) )
+		]
 	} );
 
 	// TODO:
-	// [] limit configurable
-	// [] srcontinue configurable
 	// [] OR/AND for morelike configurable
-	// [] search button and reset button
 	// [] freetext search mode
 
 	function getTopicsForLang( lang ) {
+		topicWidget.clearItems();
 		topicWidget.getMenu().clearItems();
 		$.get( 'https://www.mediawiki.org/w/api.php', {
 			action: 'query',
@@ -162,15 +186,25 @@ $( function () {
 				$wrapper.find( '.query-count' )
 					.text( apiQueryCount + ' API queries executed' );
 				if ( result.continue ) {
-					// executeQuery( result.continue.sroffset, template );
+					executeQuery( result.continue.sroffset, template );
 				}
 			}, function ( err ) {
 				console.log( err );
 			} );
 	}
 
-	function updateQueryParams() {
+	function doSearch() {
 		var templateQuery;
+		moreLike = [];
+		hasTemplate = [];
+		topicWidget.getItems().forEach( function ( item ) {
+			moreLike.push( item.data );
+		} );
+		taskTypeWidget.getItems().forEach( function ( item ) {
+			if ( item.selected ) {
+				hasTemplate.push( item.data );
+			}
+		} );
 		srSearch = '';
 		info.toggle( false );
 		list.clearItems();
@@ -188,18 +222,17 @@ $( function () {
 			templateQuery = templateGroup.join( '|' );
 			srSearch = 'hastemplate:"' + templateQuery + '"';
 			if ( moreLike.length ) {
-				// moreLike.flat().forEach( function ( topic ) {
-				var perTopicQueryParams = queryParams,
-					perTopicSrSearch = srSearch.trim() + ' morelikethis:"' + moreLike.flat().join( '|' ) + '"';
-				$.extend( perTopicQueryParams, { srsearch: perTopicSrSearch.trim() } );
-				executeQuery( 0, templateQuery );
-				// } );
+				moreLike.forEach( function ( topicTitles ) {
+					var perTopicQueryParams = queryParams,
+						perTopicSrSearch = srSearch.trim() + ' morelikethis:"' + topicTitles.flat().join( '|' ) + '"';
+					$.extend( perTopicQueryParams, { srsearch: perTopicSrSearch.trim() } );
+					executeQuery( 0, templateQuery );
+				} );
 			} else {
 				$.extend( queryParams, { srsearch: srSearch.trim() } );
 				executeQuery( 0, templateQuery );
 			}
 		} );
-
 	}
 
 	function getIconForTemplate( templateName ) {
@@ -220,12 +253,25 @@ $( function () {
 		info.setIcon( getIconForTemplate( item.getTemplate() ) );
 	} );
 
-	topicWidget.on( 'change', function () {
+	searchButton.on( 'click', function () {
+		doSearch();
+	} );
+
+	resetButton.on( 'click', function () {
+		var selectedItem = langSelectWidget.findSelectedItem();
 		moreLike = [];
-		topicWidget.getItems().forEach( function ( item ) {
-			moreLike.push( item.data );
-		} );
-		updateQueryParams();
+		hasTemplate = [];
+		apiQueryCount = 0;
+		resultCount = 0;
+		taskTypeTemplateMapping = [];
+		if ( selectedItem ) {
+			langSelectWidget.unselectItem( selectedItem );
+		}
+		taskTypeWidget.clearItems();
+		topicWidget.clearItems();
+		topicWidget.getMenu().clearItems();
+		topicWidget.setDisabled( true );
+		searchButton.setDisabled( true );
 	} );
 
 	function getTemplatesForLang( lang ) {
@@ -256,35 +302,19 @@ $( function () {
 	}
 
 	langSelectWidget.on( 'select', function ( item ) {
+		if ( !item ) {
+			return;
+		}
 		$( 'html' ).attr( 'lang', item.data );
 		lang = item.data;
 		hasTemplate = [];
 		getTopicsForLang( lang );
+		topicWidget.setDisabled( false );
 		getTemplatesForLang( lang );
-		updateQueryParams();
-	} );
-
-	taskTypeWidget.on( 'select', function () {
-		hasTemplate = [];
-		taskTypeWidget.getItems().forEach( function ( item ) {
-			if ( item.selected ) {
-				hasTemplate.push( item.data );
-			}
-		} );
-		if ( hasTemplate.length ) {
-			updateQueryParams();
-		} else {
-			// No templates, hide the results.
-			list.toggle( false );
-			$wrapper.find( '.result-count' ).toggle( false );
-			$wrapper.find( '.query-count' ).toggle( false );
-		}
 	} );
 
 	$wrapper.append(
-		langSelectWidget.$element,
-		topicWidget.$element,
-		taskTypeWidget.$element,
+		controls.$element,
 		info.$element,
 		$resultCountHtml,
 		$queryCountHtml,

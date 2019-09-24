@@ -32,3 +32,8 @@
 .oo-ui-labelElement .oo-ui-optionWidget {
     padding: 0.25em;
 }
+
+.oo-ui-fieldsetLayout {
+    background-color: lightgrey;
+    padding: 20px;
+}
