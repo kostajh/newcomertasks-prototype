@@ -3,6 +3,10 @@ $( function () {
 		lang = $( 'html' ).attr( 'lang' ),
 		queryLimit = 25,
 		apiQueryCount = 0,
+		freeTextSearchWidget = new OO.ui.SearchInputWidget( {
+			placeholder: 'Free text search (ignores topic selection)',
+			disabled: true
+		} ),
 		instructionsWidget = new OO.ui.PopupButtonWidget( {
 			icon: 'help',
 			framed: false,
@@ -17,6 +21,7 @@ $( function () {
 					'<li>You can adjust the "qiprofile" used with the search. More detail on that in the help icon next to the dropdown.</li>' +
 					'<li>After making a search and clicking on an entry, a new button appears that lets you test out a morelike search using the existing task type selection and morelikethis:{currentArticle}</li>' +
 					'<li>The app will pull down all available results. So if you don\'t select a topic with Czech and click on "Kopírovat úpravy" you\'ll end up with thousands of results. If your browser starts to hang, reload the window and start over ¯\\_(ツ)_/¯</li>' +
+					'<li>After selecting a task type, you can use the free text field to experiment with free text searches. Any topic selections will be ignored. The search will be a regular keyword search, not morelike.</li>' +
 					'<li>To see the actual search queries being performed, right click in the browser, select "Inspect element", then click on the Network tab and look at the API requests being made.</li>' +
 					'</ul></p>' ),
 				padded: true,
@@ -205,6 +210,11 @@ $( function () {
 							items: [
 								helpWidget, langSelectWidget, topicWidget, taskTypeWidget
 							]
+						} ),
+						new OO.ui.HorizontalLayout( {
+							items: [
+								searchProfileHelp, searchProfileWidget
+							]
 						} )
 					]
 				} )
@@ -212,11 +222,7 @@ $( function () {
 			new OO.ui.FieldLayout(
 				new OO.ui.Widget( {
 					content: [
-						new OO.ui.HorizontalLayout( {
-							items: [
-								searchProfileHelp, searchProfileWidget
-							]
-						} )
+						freeTextSearchWidget
 					]
 				} )
 			),
@@ -230,10 +236,6 @@ $( function () {
 				} ) )
 		]
 	} );
-
-	// TODO:
-	// [] freetext search mode
-	// [] Override morelike
 
 	function getTopicsForLang( lang ) {
 		topicWidget.clearItems();
@@ -310,6 +312,7 @@ $( function () {
 
 	function doSearch() {
 		var templateQuery,
+			freeTextOverride = freeTextSearchWidget.getValue(),
 			srqiprofile = searchProfileWidget.getMenu().findSelectedItem().getData();
 		moreLike = [];
 		hasTemplate = [];
@@ -340,7 +343,7 @@ $( function () {
 		hasTemplate.forEach( function ( templateGroup ) {
 			templateQuery = templateGroup.join( '|' );
 			srSearch = 'hastemplate:"' + templateQuery + '"';
-			if ( moreLike.length ) {
+			if ( moreLike.length && !freeTextOverride ) {
 				moreLike.forEach( function ( topicTitles ) {
 					var perTopicQueryParams = queryParams,
 						perTopicSrSearch = srSearch.trim() + ' morelikethis:"' + topicTitles.flat().join( '|' ) + '"';
@@ -351,6 +354,9 @@ $( function () {
 					executeQuery( 0, templateQuery );
 				} );
 			} else {
+				if ( freeTextOverride ) {
+					srSearch += ' ' + freeTextOverride;
+				}
 				$.extend( queryParams, { srsearch: srSearch.trim() } );
 				executeQuery( 0, templateQuery );
 			}
@@ -406,6 +412,8 @@ $( function () {
 		topicWidget.getMenu().clearItems();
 		topicWidget.setDisabled( true );
 		searchButton.setDisabled( true );
+		freeTextSearchWidget.setValue( null );
+		freeTextSearchWidget.setDisabled( true );
 		moreLikeOverrideWidget.toggle( false );
 		list.clearItems();
 		$wrapper.find( '.result-count' )
@@ -452,6 +460,7 @@ $( function () {
 		taskTypeWidget.getItems().forEach( function ( item ) {
 			if ( item.isSelected() ) {
 				searchButton.setDisabled( false );
+				freeTextSearchWidget.setDisabled( false );
 			}
 		} );
 	} );
