@@ -12,12 +12,12 @@ $( function () {
 		} ),
 		searchButton = new OO.ui.ButtonWidget( {
 			label: 'Search',
+			disabled: true,
 			flags: [
 				'primary',
 				'progressive'
 			]
 		} ),
-
 		langSelectWidget = new OO.ui.ButtonSelectWidget( {
 			items: [
 				new OO.ui.ButtonOptionWidget( {
