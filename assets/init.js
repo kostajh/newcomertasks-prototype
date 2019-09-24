@@ -3,6 +3,8 @@ $( function () {
 		lang = $( 'html' ).attr( 'lang' ),
 		queryLimit = 25,
 		apiQueryCount = 0,
+		logicalOrToggleWidget = new OO.ui.ToggleSwitchWidget( { value: false } ),
+		useFirstTopicArticleWidget = new OO.ui.ToggleSwitchWidget( { value: false } ),
 		freeTextSearchWidget = new OO.ui.SearchInputWidget( {
 			placeholder: 'Free text search (ignores topic selection)',
 			disabled: true
@@ -15,8 +17,7 @@ $( function () {
 				head: true,
 				label: null,
 				$content: $( '<p><ul>' +
-					'<li>Templates and topics are loaded from mediawiki.org/wiki/Growth/Personalized_first_day/Newcomer_tasks/Prototype/templates/{langCode}.json and mediawiki.org/wiki/Growth/Personalized_first_day/Newcomer_tasks/Prototype/topics/{langCode}.json</li>' +
-					'<li>A morelikethis search is executed using pipe delimited Topic titles. So if your "Sport" topic has "Football" and "Basketball", you\'ll see morelikethis:Football|Basketball. This is a logical AND search, because morelike is using all the words from these two articles as the seed for a search.</li>' +
+					'<li>A morelikethis search is executed using pipe delimited Topic titles. So if your "Sport" topic has "Football" and "Basketball", you\'ll see morelikethis:Football|Basketball. This is a logical AND search, because morelike is using all the words from these two articles as the seed for a search. You can use the toggle in the controls to make this a logical OR</li>' +
 					'<li>However, if multiple topics are selected, those are all logical OR searches.</li>' +
 					'<li>You can adjust the "qiprofile" used with the search. More detail on that in the help icon next to the dropdown.</li>' +
 					'<li>After making a search and clicking on an entry, a new button appears that lets you test out a morelike search using the existing task type selection and morelikethis:{currentArticle}</li>' +
@@ -219,6 +220,8 @@ $( function () {
 					]
 				} )
 			),
+			new OO.ui.FieldLayout( logicalOrToggleWidget, { label: 'Use logical OR with topic titles', align: 'left' } ),
+			new OO.ui.FieldLayout( useFirstTopicArticleWidget, { label: 'Use only first article in topic list for morelike search', align: 'left' } ),
 			new OO.ui.FieldLayout(
 				new OO.ui.Widget( {
 					content: [
@@ -346,12 +349,28 @@ $( function () {
 			if ( moreLike.length && !freeTextOverride ) {
 				moreLike.forEach( function ( topicTitles ) {
 					var perTopicQueryParams = queryParams,
+						perTopicSrSearch;
+					if ( useFirstTopicArticleWidget.getValue() ) {
+						topicTitles = [ topicTitles[ 0 ] ];
+					}
+					if ( !logicalOrToggleWidget.getValue() ) {
 						perTopicSrSearch = srSearch.trim() + ' morelikethis:"' + topicTitles.flat().join( '|' ) + '"';
-					$.extend( perTopicQueryParams, {
-						srsearch: perTopicSrSearch.trim(),
-						srqiprofile: srqiprofile
-					} );
-					executeQuery( 0, templateQuery );
+						$.extend( perTopicQueryParams, {
+							srsearch: perTopicSrSearch.trim(),
+							srqiprofile: srqiprofile
+						} );
+						executeQuery( 0, templateQuery );
+					} else {
+						topicTitles.forEach( function ( topicTitle ) {
+							perTopicSrSearch = srSearch.trim() + ' morelikethis:"' + topicTitle + '"';
+							$.extend( perTopicQueryParams, {
+								srsearch: perTopicSrSearch.trim(),
+								srqiprofile: srqiprofile
+							} );
+							executeQuery( 0, templateQuery );
+						} );
+					}
+
 				} );
 			} else {
 				if ( freeTextOverride ) {
