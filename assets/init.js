@@ -113,7 +113,7 @@ $( function () {
 	function getTopics() {
 		topicWidget.clearItems();
 		topicWidget.getMenu().clearItems();
-		$.get( '/topics.json', function ( response ) {
+		$.get( '/assets/topics.json', function ( response ) {
 			response.forEach( function ( topic ) {
 				topicWidget.addOptions( [
 					topicWidget.createMenuOptionWidget( topic, topic )
@@ -159,7 +159,7 @@ $( function () {
 			return;
 		}
 		hasTemplate.forEach( function ( templateGroup ) {
-			$.get( '/tasks.json', function ( response ) {
+			$.get( '/assets/tasks.json', function ( response ) {
 				response.forEach( function ( task ) {
 					if ( task.lang !== lang ) {
 						return;
