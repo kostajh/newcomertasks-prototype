@@ -172,6 +172,7 @@ $( function () {
 			config = config || {};
 			TaskOptionWidget.parent.call( this, config );
 			this.template = config.template;
+			this.query = config.query;
 			this.category = config.category;
 		},
 		topicWidget,
@@ -186,6 +187,10 @@ $( function () {
 
 	TaskOptionWidget.prototype.getTemplate = function () {
 		return this.template;
+	};
+
+	TaskOptionWidget.prototype.getQuery = function () {
+		return this.query;
 	};
 
 	topicWidget = new TopicSelectionWidget( {
@@ -277,13 +282,14 @@ $( function () {
 		return taskTypeTemplateMapping[ getCategoryForTemplate( template ) ].label;
 	}
 
-	function appendResultsToTaskOptions( searchResult, template ) {
+	function appendResultsToTaskOptions( searchResult, template, searchQuery ) {
 
 		if ( list.findItemFromData( searchResult ) === null ) {
 			resultCount += 1;
 			list.addItems( [
 				new TaskOptionWidget( {
 					data: searchResult,
+					query: searchQuery,
 					template: template,
 					label: searchResult.title
 				} )
@@ -299,7 +305,7 @@ $( function () {
 		$.get( 'https://' + lang + '.wikipedia.org/w/api.php?', queryParams )
 			.then( function ( result ) {
 				result.query.search.forEach( function ( searchResult ) {
-					appendResultsToTaskOptions( searchResult, template );
+					appendResultsToTaskOptions( searchResult, template, queryParams.srsearch );
 				} );
 				$wrapper.find( '.result-count' )
 					.text( resultCount + ' results found' );
@@ -395,7 +401,9 @@ $( function () {
 				item.data.snippet +
 			'<br>' +
 			'<p><strong>Template:</strong> ' + item.getTemplate() + ' ' +
-			'<strong>Category:</strong> ' + getCategoryLabelForTemplate( item.getTemplate() ) + '</p>' )
+			'<strong>Category:</strong> ' + getCategoryLabelForTemplate( item.getTemplate() ) + '</p>' +
+			'<p><strong>Query:</strong> <code>' + item.getQuery() + '</code></p>'
+			)
 		);
 		info.setIcon( getIconForTemplate( item.getTemplate() ) );
 		moreLikeOverrideWidget.setData( item.data.title );
