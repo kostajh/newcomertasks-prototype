@@ -288,7 +288,7 @@ $( function () {
 			resultCount += 1;
 			list.addItems( [
 				new TaskOptionWidget( {
-					data: searchResult,
+					data: $.extend( searchResult, { template: template } ),
 					query: searchQuery,
 					template: template,
 					label: searchResult.title
