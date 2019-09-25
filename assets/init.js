@@ -1,7 +1,7 @@
 $( function () {
 	var taskTypeTemplateMapping = {},
 		lang = $( 'html' ).attr( 'lang' ),
-		queryLimit = 25,
+		queryLimit = 'max',
 		apiQueryCount = 0,
 		logicalOrToggleWidget = new OO.ui.ToggleSwitchWidget( { value: false } ),
 		useFirstTopicArticleWidget = new OO.ui.ToggleSwitchWidget( { value: false } ),
