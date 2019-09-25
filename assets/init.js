@@ -297,22 +297,22 @@ $( function () {
 		}
 	}
 
-	function executeQuery( offset, template ) {
+	function executeQuery( query, offset, template ) {
 		apiQueryCount += 1;
 		if ( offset !== 0 ) {
-			queryParams.sroffset = offset;
+			query.sroffset = offset;
 		}
-		$.get( 'https://' + lang + '.wikipedia.org/w/api.php?', queryParams )
+		$.get( 'https://' + lang + '.wikipedia.org/w/api.php?', query )
 			.then( function ( result ) {
 				result.query.search.forEach( function ( searchResult ) {
-					appendResultsToTaskOptions( searchResult, template, queryParams.srsearch );
+					appendResultsToTaskOptions( searchResult, template, query.srsearch );
 				} );
 				$wrapper.find( '.result-count' )
 					.text( resultCount + ' results found' );
 				$wrapper.find( '.query-count' )
 					.text( apiQueryCount + ' API queries executed' );
 				if ( result.continue ) {
-					executeQuery( result.continue.sroffset, template );
+					executeQuery( query, result.continue.sroffset, template );
 				}
 			}, function ( err ) {
 				console.log( err );
@@ -350,11 +350,12 @@ $( function () {
 			return;
 		}
 		hasTemplate.forEach( function ( templateGroup ) {
+			var topicLessQueryParams = Object.assign( {}, queryParams );
 			templateQuery = templateGroup.join( '|' );
 			srSearch = 'hastemplate:"' + templateQuery + '"';
 			if ( moreLike.length && !freeTextOverride ) {
 				moreLike.forEach( function ( topicTitles ) {
-					var perTopicQueryParams = queryParams,
+					var perTopicQueryParams = Object.assign( {}, queryParams ),
 						perTopicSrSearch;
 					if ( useFirstTopicArticleWidget.getValue() ) {
 						topicTitles = [ topicTitles[ 0 ] ];
@@ -365,7 +366,7 @@ $( function () {
 							srsearch: perTopicSrSearch.trim(),
 							srqiprofile: srqiprofile
 						} );
-						executeQuery( 0, templateQuery );
+						executeQuery( perTopicQueryParams, 0, templateQuery );
 					} else {
 						topicTitles.forEach( function ( topicTitle ) {
 							perTopicSrSearch = srSearch.trim() + ' morelikethis:"' + topicTitle + '"';
@@ -373,7 +374,7 @@ $( function () {
 								srsearch: perTopicSrSearch.trim(),
 								srqiprofile: srqiprofile
 							} );
-							executeQuery( 0, templateQuery );
+							executeQuery( perTopicQueryParams, 0, templateQuery );
 						} );
 					}
 
@@ -382,8 +383,8 @@ $( function () {
 				if ( freeTextOverride ) {
 					srSearch += ' ' + freeTextOverride;
 				}
-				$.extend( queryParams, { srsearch: srSearch.trim() } );
-				executeQuery( 0, templateQuery );
+				$.extend( topicLessQueryParams, { srsearch: srSearch.trim() } );
+				executeQuery( topicLessQueryParams, 0, templateQuery );
 			}
 		} );
 	}
