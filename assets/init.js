@@ -1,6 +1,7 @@
 $( function () {
 	var taskTypeTemplateMapping = {},
 		lang = $( 'html' ).attr( 'lang' ),
+		topics = [],
 		resetButton = new OO.ui.ButtonWidget( {
 			label: 'Reset',
 			flags: [
@@ -74,6 +75,10 @@ $( function () {
 		return this.template;
 	};
 
+	TaskOptionWidget.prototype.getMetadata = function () {
+		return JSON.stringify( this.data, null, 2 );
+	};
+
 	topicWidget = new TopicSelectionWidget( {
 		allowArbitrary: false,
 		options: [],
@@ -118,24 +123,11 @@ $( function () {
 
 	}
 
-	function getCategoryForTemplate( template ) {
-		var category;
-		for ( category in taskTypeTemplateMapping ) {
-			if ( taskTypeTemplateMapping[ category ].templates.join( '|' ) === template ) {
-				return category;
-			}
-		}
-		throw Error( 'No category :(' );
-	}
-
-	function getCategoryLabelForTemplate( template ) {
-		return taskTypeTemplateMapping[ getCategoryForTemplate( template ) ].label;
-	}
-
 	function appendResultsToTaskOptions( result, template ) {
-
 		if ( list.findItemFromData( result ) === null ) {
 			resultCount += 1;
+			$wrapper.find( '.result-count' )
+				.text( resultCount + ' results found' );
 			list.addItems( [
 				new TaskOptionWidget( {
 					data: result,
@@ -151,6 +143,7 @@ $( function () {
 		list.clearItems();
 		list.toggle( true );
 		resultCount = 0;
+		$wrapper.find( '.result-count' ).toggle( true );
 		hasTemplate = [];
 		topics = [];
 
@@ -171,10 +164,13 @@ $( function () {
 					if ( task.lang !== lang ) {
 						return;
 					}
-					if ( topics.length && topics.includes( task.topic ) &&
-						templateGroup.includes( task.template ) ) {
-						appendResultsToTaskOptions( task, task.template );
+					if ( topics.length ) {
+						if ( topics.includes( task.topic ) &&
+							templateGroup.includes( task.template ) ) {
+							appendResultsToTaskOptions( task, task.template );
+						}
 					} else {
+						// Template only search.
 						if ( templateGroup.includes( task.template ) ) {
 							appendResultsToTaskOptions( task, task.template );
 						}
@@ -182,10 +178,6 @@ $( function () {
 				} );
 			} );
 		} );
-	}
-
-	function getIconForTemplate( templateName ) {
-		return taskTypeTemplateMapping[ getCategoryForTemplate( templateName ) ].icon;
 	}
 
 	list.on( 'choose', function ( item ) {
@@ -196,11 +188,10 @@ $( function () {
 				'<br>' +
 				item.data.enwiki_title +
 			'<br>' +
-			'<p><strong>Template:</strong> ' + item.getTemplate()
+			'<p><strong>Template:</strong> ' + item.getTemplate() +
+				'<p><code>' + item.getMetadata() + '</code></p>'
 			)
-			// '<strong>Category:</strong> ' + getCategoryLabelForTemplate( item.getTemplate() ) + '</p>' )
 		);
-		// info.setIcon( getIconForTemplate( item.getTemplate() ) );
 	} );
 
 	searchButton.on( 'click', function () {
@@ -217,6 +208,7 @@ $( function () {
 		topicWidget.setDisabled( true );
 		searchButton.setDisabled( true );
 		list.clearItems();
+		info.toggle( false );
 		$wrapper.find( '.result-count' )
 			.toggle( false )
 			.text( '' );
