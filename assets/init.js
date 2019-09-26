@@ -283,12 +283,12 @@ $( function () {
 	}
 
 	function appendResultsToTaskOptions( searchResult, template, searchQuery ) {
-
 		if ( list.findItemFromData( searchResult ) === null ) {
 			resultCount += 1;
+
 			list.addItems( [
 				new TaskOptionWidget( {
-					data: $.extend( searchResult, { template: template } ),
+					data: $.extend( searchResult, { query: searchQuery } ),
 					query: searchQuery,
 					template: template,
 					label: searchResult.title
@@ -298,21 +298,22 @@ $( function () {
 	}
 
 	function executeQuery( query, offset, template ) {
+		var newQuery = Object.assign( {}, query );
 		apiQueryCount += 1;
 		if ( offset !== 0 ) {
-			query.sroffset = offset;
+			newQuery.sroffset = offset;
 		}
-		$.get( 'https://' + lang + '.wikipedia.org/w/api.php?', query )
+		$.get( 'https://' + lang + '.wikipedia.org/w/api.php?', newQuery )
 			.then( function ( result ) {
 				result.query.search.forEach( function ( searchResult ) {
-					appendResultsToTaskOptions( searchResult, template, query.srsearch );
+					appendResultsToTaskOptions( searchResult, template, newQuery.srsearch );
 				} );
 				$wrapper.find( '.result-count' )
 					.text( resultCount + ' results found' );
 				$wrapper.find( '.query-count' )
 					.text( apiQueryCount + ' API queries executed' );
 				if ( result.continue ) {
-					executeQuery( query, result.continue.sroffset, template );
+					executeQuery( newQuery, result.continue.sroffset, template );
 				}
 			}, function ( err ) {
 				console.log( err );
